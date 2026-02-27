@@ -1,0 +1,1 @@
+javac -h native src/com/karmorak/lib/utils/MonitorNative.java
