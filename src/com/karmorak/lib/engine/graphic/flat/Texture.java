@@ -41,8 +41,8 @@ public class Texture extends TextureConstruct implements Renderable {
 	static int BPP = 4;
 	public final TextureData DATA;
 	
-	public Texture(URL path) {			
-		DATA = (loadURL(path, Type.TEXTURE));
+	public Texture(URL path) {
+		DATA = (loadURL(path));
 		init();
 	}
 
@@ -59,7 +59,7 @@ public class Texture extends TextureConstruct implements Renderable {
 	}
 	
 	public Texture(int width, int height, int[] pixels) {
-		DATA = (loadURL(width, height, BPP, ImageLoader.IntArrayToBuffer(width, height, pixels), Type.TEXTURE));
+		DATA = (loadURL(width, height, BPP, ImageLoader.IntArrayToBuffer(width, height, pixels)));
 		
 		init();
 	}
@@ -74,12 +74,12 @@ public class Texture extends TextureConstruct implements Renderable {
 		}
 		buffer.rewind();
 
-		DATA = (loadURL(width, height, BPP, buffer, Type.TEXTURE));
+		DATA = (loadURL(width, height, BPP, buffer));
 		init();
 	}
 
 	public Texture(int width, int height, ByteBuffer b) {
-		DATA = (loadURL(width, height, BPP, b, Type.TEXTURE));
+		DATA = (loadURL(width, height, BPP, b));
 		
 		init();
 	}
@@ -133,7 +133,7 @@ public class Texture extends TextureConstruct implements Renderable {
 		translBounds.set(translatePosition(), translateBounds());
 
 		overlayColor = ColorPreset.WHITE.toColor();
-		overlayColorintensity = 1f;
+		overlayColorIntensity = 1f;
 	}
 	
 
@@ -157,7 +157,7 @@ public class Texture extends TextureConstruct implements Renderable {
 		for(Texture t : textures) {
 					
 			shader.loadTransformationMatrix(t.translBounds.getPosition(), t.translBounds.getSize(), true);
-			shader.load2DColor(t.overlayColor, t.overlayColorintensity);
+			shader.load2DColor(t.overlayColor.toColor(), t.overlayColorIntensity);
 			glBindTexture(GL_TEXTURE_2D, t.DATA.getID());
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		}		
@@ -186,7 +186,7 @@ public class Texture extends TextureConstruct implements Renderable {
 		Vector2 pos = translatePosition(x, y, bounds); // <---
 		
 		SHADER.loadTransformationMatrix(pos, bounds, rotation, flipX, flipY);
-		SHADER.load2DColor(overlayColor, overlayColorintensity);
+		SHADER.load2DColor(overlayColor.toColor(), overlayColorIntensity);
 		glBindTexture(GL_TEXTURE_2D, DATA.getID());
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		
@@ -215,7 +215,7 @@ public class Texture extends TextureConstruct implements Renderable {
 				for (Vector2 pos : newTextures.get(texture).get(size)) {
 					Vector2 npos = texture.translatePosition(pos.getX(), pos.getY(), size); // <---
 					textureShader.loadTransformationMatrix(npos, nsize, texture.rotation, texture.flipX, texture.flipY);
-					textureShader.load2DColor(texture.overlayColor, texture.overlayColorintensity);
+					textureShader.load2DColor(texture.overlayColor.toColor(), texture.overlayColorIntensity);
 					glBindTexture(GL_TEXTURE_2D, texture.DATA.getID());
 					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);				
 				}		
@@ -244,7 +244,7 @@ public class Texture extends TextureConstruct implements Renderable {
 			Vector2 nsize = texture.translateBounds(bound.getWidth(), bound.getHeight());
 			Vector2 npos = texture.translatePosition(bound.getX(), bound.getY(), bound.getSize()); // <---
 			textureShader.loadTransformationMatrix(npos, nsize, texture.rotation, texture.flipX, texture.flipY);
-			textureShader.load2DColor(texture.overlayColor, texture.overlayColorintensity);
+			textureShader.load2DColor(texture.overlayColor.toColor(), texture.overlayColorIntensity);
 			glBindTexture(GL_TEXTURE_2D, texture.DATA.getID());
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);		
 		}	
@@ -282,7 +282,7 @@ public class Texture extends TextureConstruct implements Renderable {
 		glActiveTexture(GL_TEXTURE0);		
 		
 		SHADER.loadTransformationMatrix(translatePosition(), translateBounds(), rotation, flipX, flipY);
-		SHADER.load2DColor(overlayColor, overlayColorintensity);
+		SHADER.load2DColor(overlayColor.toColor(), overlayColorIntensity);
 		
 		glBindTexture(GL_TEXTURE_2D, DATA.ID);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -316,7 +316,7 @@ public class Texture extends TextureConstruct implements Renderable {
 		glBindTexture(GL_TEXTURE_2D, DATA.getID());
 
 		// 2. Farbe einmal setzen (sofern sie für alle Instanzen gleich ist)
-		shader.load2DColor(overlayColor, overlayColorintensity);
+		shader.load2DColor(overlayColor.toColor(), overlayColorIntensity);
 
 		for(Vector4 bound : positions) {
 			Vector2 nsize = translateBounds(bound.getWidth(), bound.getHeight());

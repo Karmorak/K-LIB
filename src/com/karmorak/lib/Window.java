@@ -381,6 +381,7 @@ public class Window {
 
 	public void setPositionMiddle() {
 		glfwSetWindowPos(windowID, (int) ((KLIB.graphic.MonitorWidth() - bounds.getWidth()) * 0.5f),(int) ((KLIB.graphic.MonitorHeight() - bounds.getHeight()) * 0.5f));
+		glfwSwapBuffers(windowID);
 	}
 
 	public boolean isFullscreen() {

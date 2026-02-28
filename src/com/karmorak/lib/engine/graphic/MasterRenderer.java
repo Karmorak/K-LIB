@@ -71,10 +71,9 @@ public final class MasterRenderer {
 	}
 	
 	public MasterRenderer() {
-		enableCulling();		
-		Renderable.init();
+		enableCulling();
 
-		textureShader = Renderable.getShader();
+
 				
 		renderer = new Renderer(shader);
 		terrainRenderer = new TerrainRenderer(terrainShader);
@@ -89,6 +88,8 @@ public final class MasterRenderer {
 	public void create() {
 		if(!shader.isCreated()) shader.create();
 		terrainRenderer.create();
+		Renderable.init();
+		textureShader = Renderable.getShader();
 	}
 
 

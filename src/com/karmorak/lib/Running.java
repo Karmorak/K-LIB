@@ -7,6 +7,7 @@ import static org.lwjgl.opengl.GL46.glGetString;
 
 import java.util.ArrayList;
 
+import com.karmorak.lib.engine.graphic.GLTaskQueue;
 import org.lwjgl.glfw.GLFW;
 
 import com.karmorak.lib.KLIB.WindowOptions;
@@ -80,12 +81,16 @@ public abstract class Running implements Runnable {
 
 			init();		
 			while(!thread.isInterrupted()) {
+				GLTaskQueue.executeAll();
 				Input.addFrame();
-//				Input.resetInput(); //<-- weiß nicht warum ich das damals reingetan habe
-				for (int i = 0; i < windows.size(); i++)
-					windows.get(i).update();
+				Input.resetInput();
+				for (Window value : windows) value.update();
 				update();	
 				render();
+				int error = glGetError();
+				if (error != GL_NO_ERROR) {
+					System.err.println("OpenGL Error detektiert: " + error);
+				}
 				
 				for (int i = 0; i < windows.size(); i++) {
 					Window window = windows.get(i);	
@@ -117,20 +122,18 @@ public abstract class Running implements Runnable {
 	
 	
 	public Window getWindow() {
-		return windows.get(0);
+		return windows.getFirst();
 	}
 	
 	public void close() {
 		GSM.destroy();
-		
-		for (int i = 0; i < windows.size(); i++)  {
-			Window window = windows.get(i);			
-			window.destroy();			
-		}		
+
+		for (Window window : windows) {
+			window.destroy();
+		}
 		windows.clear();
 		
 		thread.interrupt();
-//		thread.stop();
 	}
 	
 	public void close(Window window) {

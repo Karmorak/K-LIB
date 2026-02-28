@@ -40,11 +40,11 @@ public class KLIB {
 	// [ ] text max width eine  option hinzufügen das die linie nach unten weitergeführt wird
 	// [ ] text new line und tab (/n und /t) gängig machen
 	// [X] texture filter einstellbar machen
-	
-	
-	public static final String VERSION = "1.0.0";
+
+
+	public static final String VERSION = "1.0.1";
 	public static final int RELEASE = 30;
-	public static final String DATE = "22.02.2026";
+	public static final String DATE = "28.02.2026";
 	/** 0 = off, 1 = on*/
 	public static int DEBUG_LEVEL;
 	private static boolean isINIT = false;

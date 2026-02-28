@@ -16,7 +16,7 @@ class FontAtlas {
     private final URL SRC_PATH;
 
     FontAtlas(URL Path, HashMap<CharIdentifier, Vector4i> regions) {
-        TextureData data = TextureConstruct.loadURL(Path, TextureConstruct.Type.TEXTURE);
+        TextureData data = TextureConstruct.loadURL(Path);
         TEXTURE_ID = data.ID;
         SRC_PATH = Path;
         SRC_WIDTH = data.WIDTH;

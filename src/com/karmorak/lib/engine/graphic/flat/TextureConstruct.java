@@ -21,6 +21,7 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import com.karmorak.lib.Colorable;
 import com.karmorak.lib.engine.io.images.ImageLoader;
 import org.lwjgl.BufferUtils;
 
@@ -40,8 +41,8 @@ public abstract class TextureConstruct {
 	protected Vector3 rotation;
 	protected boolean flipX;
 	protected boolean flipY;
-	protected Color overlayColor;
-	protected float overlayColorintensity;
+	protected Colorable overlayColor;
+	protected float overlayColorIntensity;
 	
 	protected final Vector4 translBounds = new Vector4();
 	
@@ -63,19 +64,13 @@ public abstract class TextureConstruct {
 		}
 		return id;
 	}
-	
-	public enum Type {		
-		TEXTURE,
-		DRAWDATA;		
-	}	
 
 
-
-	public static TextureData loadURL(URL path, Type type) {
-		return loadURL(path, type, default_min_filter, default_mag_filter);
+	public static TextureData loadURL(URL path) {
+		return loadURL(path, default_min_filter, default_mag_filter);
 	}
-	
-	public static TextureData loadURL(URL path, Type type, int min_filter, int mag_filter) {
+
+	public static TextureData loadURL(URL path, int min_filter, int mag_filter) {
 
 		ByteBuffer buffer;
 		int width = -1;
@@ -108,7 +103,7 @@ public abstract class TextureConstruct {
 	}
 
 
-	public static TextureData copyTexture(int width, int height, ByteBuffer buffer, Type datatype) {
+	public static TextureData copyTexture(int width, int height, ByteBuffer buffer) {
 		ByteBuffer copy = ImageLoader.copyBuffer(buffer);
 		copy.rewind();
 
@@ -118,7 +113,7 @@ public abstract class TextureConstruct {
 
 	}
 
-	public static TextureData loadURL(int width, int height, int bpp, ByteBuffer buffer, Type datatype) {
+	public static TextureData loadURL(int width, int height, int bpp, ByteBuffer buffer) {
 		int ID = generateTextureID();
 
 		buffer.rewind();
@@ -168,7 +163,8 @@ public abstract class TextureConstruct {
 
 	static TextureData DrawMapToData(DrawMap map) {
 		int id = generateTextureID();
-		bindTexture(id, map.getSourceWidth(), map.getSourceHeight(), map.getBuffer());
+		map.create();
+		bindTexture(id, map.getSourceWidth(), map.getSourceHeight(), map.buffer_cache);
 
         return new TextureData(id, map.getSourceWidth(), map.getSourceHeight(), map.getPATH(), 4);
 	}
@@ -438,12 +434,12 @@ public abstract class TextureConstruct {
 	}
 	
 	public void setColorintensity(float intensity) {
-		overlayColorintensity = intensity;
+		overlayColorIntensity = intensity;
 	}
 	
 	public void setColor(Color c, float intensity) {
 		overlayColor = c;
-		overlayColorintensity = intensity;
+		overlayColorIntensity = intensity;
 	}
 		
 	public Color getOverlayColor() {
@@ -451,7 +447,7 @@ public abstract class TextureConstruct {
 	}
 	
 	public float getOverlayColorIntensity() {
-		return overlayColorintensity;
+		return overlayColorIntensity;
 	}
 	
 	public void setAlpha(int alpha) {

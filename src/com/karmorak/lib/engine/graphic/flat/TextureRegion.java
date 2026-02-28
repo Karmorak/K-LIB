@@ -26,7 +26,7 @@ public class TextureRegion extends TextureConstruct implements Renderable {
 	public final TextureData DATA;
 	
 	public TextureRegion(URL path) {
-		DATA = loadURL(path, Type.TEXTURE);
+		DATA = loadURL(path);
 		
 		scale = 1f;
 		pos = new Vector2(0, 0);
@@ -35,7 +35,7 @@ public class TextureRegion extends TextureConstruct implements Renderable {
 	}
 	
 	public TextureRegion(URL path, Vector4 texBounds) {
-		DATA = loadURL(path, Type.TEXTURE);
+		DATA = loadURL(path);
 			
 		this.setTexBounds(texBounds);
 		
@@ -217,7 +217,7 @@ public class TextureRegion extends TextureConstruct implements Renderable {
 		glBindTexture(GL_TEXTURE_2D, DATA.getID());
 
 		// 2. Farbe einmal setzen (sofern sie für alle Instanzen gleich ist)
-		shader.load2DColor(overlayColor, overlayColorintensity);
+		shader.load2DColor(overlayColor.toColor(), overlayColorIntensity);
 
 		for(Vector4 bound : positions) {
 			Vector2 nsize = translateBounds(bound.getWidth(), bound.getHeight());

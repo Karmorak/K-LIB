@@ -234,27 +234,25 @@ public class GraphicUtils {
 	 */
 	public static void saveDrawMap(DrawMap map, String dir_path) throws IOException {
 
-
-
 		File f = new File(dir_path);
-		
+
 		FileUtils.checkFile(f);
 
 		if(map.getBuffer() == null) throw new IOException("saving Draw Map failed because map.getBuffer is null");
 		ByteBuffer buf2 = map.getBuffer();
-		
+
 		buf2.position(0);
-		
+
 		byte[] arr = new byte[buf2.remaining()];
-		buf2.get(arr);		
-		
-					
+		buf2.get(arr);
+
+
 		BufferedImage img = new BufferedImage((int)map.getSourceWidth(),(int) map.getSourceHeight(), BufferedImage.TYPE_4BYTE_ABGR);
 		img.getRaster().setDataElements(0, 0, (int)map.getSourceWidth(), (int) map.getSourceHeight(), arr);
-					    
-		ImageIO.write(img, "png", f);	
-		
-		img.flush();		
+
+		ImageIO.write(img, "png", f);
+
+		img.flush();
 		buf2.rewind();
 	
 	}

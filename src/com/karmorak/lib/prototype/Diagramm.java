@@ -87,7 +87,7 @@ public class Diagramm {
 		colors = new HashMap<>();
 		
 //		lines = new DrawMap(x_width, y_height, Color.ALPHA);
-		d_columns = new DrawMap(x_width, y_height, Color.ALPHA());
+        d_columns = new DrawMap(x_width, y_height, ColorPreset.ALPHA);
 //		d_columns.fill(Color.LIGHT_GRAY);
 		
 		
@@ -139,11 +139,11 @@ public class Diagramm {
 	
 		
 		for (Vector2 vector2 : data) {
-			int horizontal = (int) vector2.getX();			
+            int horizontal = (int) vector2.getX();
 			if(horizontal_counts.get(horizontal) != null) {
-				horizontal_counts.put(horizontal, horizontal_counts.get(horizontal) +1);			
+                horizontal_counts.put(horizontal, horizontal_counts.get(horizontal) + 1);
 			} else {
-				horizontal_counts.put(horizontal, 1);	
+                horizontal_counts.put(horizontal, 1);
 			}
 		}
 		
@@ -185,16 +185,16 @@ public class Diagramm {
 			float max_horizontal_raster = horizontal_values[horizontal_values.length-1];
 			float max_vertical_raster = vertical_values[vertical_values.length-1];
 			
-			ArrayList<Vector2> data = datas.get(key);			
-			
-		
-			float x = data.get(0).getHorizontal();
+			ArrayList<Vector2> data = datas.get(key);
+
+
+            float x = data.getFirst().getHorizontal();
 			x = (float) (x / max_horizontal_raster * x_width);
-			
-			float y = data.get(0).getVertical();
+
+            float y = data.getFirst().getVertical();
 			y = (float) (y / max_vertical_raster * y_height);
-			
-			DrawMap line = new DrawMap(x_width, y_height, Color.ALPHA());
+
+            DrawMap line = new DrawMap(x_width, y_height, ColorPreset.ALPHA);
 			
 			for (int i = 1; i < data.size(); i++) {
 				float x2 = data.get(i).getHorizontal();

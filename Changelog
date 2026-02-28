@@ -202,7 +202,7 @@ v. 0.9.2 r29 (27.01.2026)
     - added MonitorNative to get monitor HardwareInfo
 v.0.9.2.1
     - removed monitors[] list in Window cause its unused and should be replaced by a better solution
-v. 1.0.0 (in dev...)
+v. 1.0.0
     - update to Java 25.0.2 & lwjgl 3.4.0
     - Text and Button can now use special chars called with §§identifier
          - for this there was a huge rewrite needed of Font, OwnChar & Text
@@ -222,4 +222,7 @@ v. 1.0.0 (in dev...)
     - deprecated getWidth_real got removed from Button
     - many small changes under the hood to hopefully improve stability and fix the jvm crashes
     - added ColorPreset and Colorable interface which is implemented by Color and ColorPreset
+ v. 1.0.1
+    - hopefully more improvements to reduce the HeapCorruption crashes that currently happening
+    - einführung des GLTaskQueue
 

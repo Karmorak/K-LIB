@@ -32,6 +32,7 @@ import java.util.List;
 
 import com.karmorak.lib.ColorPreset;
 import com.karmorak.lib.Colorable;
+import com.karmorak.lib.engine.graphic.GLTaskQueue;
 import com.karmorak.lib.engine.graphic.Renderable;
 import com.karmorak.lib.math.*;
 import org.lwjgl.BufferUtils;
@@ -46,10 +47,10 @@ public class DrawMap extends TextureConstruct implements Renderable {
 	static int DEFAULT_BPP = 4;
 	
 	private int[] pixels;
-	private boolean buffer_changed = true, buffer_bound = false;
-	private ByteBuffer buffer_cache;
-	private int ID = -1;
+	private boolean buffer_changed = true, buffer_created = false;
+	ByteBuffer buffer_cache;
 
+	private int ID = -1;
 	private URL src_path;
 	private int src_width, src_height, src_bpp;
 
@@ -67,9 +68,9 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		pos = new Vector2(100, 100);
 		size = new Vector2(src_width, src_height);
 		translBounds.set(translatePosition(), translateBounds());
-		rotation = new Vector3(0, 0, 0);
-		this.overlayColor = null;
-		this.overlayColorintensity = 1f;
+		rotation = Vector3.EMPTY;
+		this.overlayColor = ColorPreset.WHITE;
+		this.overlayColorIntensity = 1f;
 	}
 
 	void initData(TextureData data) {
@@ -97,6 +98,13 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		init();
 		return this;
 	}
+
+	public DrawMap set(int width, int height, ByteBuffer src) {
+		initPixels(width, height, 4, src);
+		init();
+		buffer_created = true;
+		return this;
+	}
 	
 	public DrawMap(URL path, int texture_filter) {		
 		initPixels(path);		
@@ -115,7 +123,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 
 	@Deprecated
 	public DrawMap(DrawMap map) {
-		initPixels(map.getSourceWidth(), map.getSourceHeight(), 4, ImageLoader.copyBuffer(map.getBuffer()));
+		initPixels(map.getSourceWidth(), map.getSourceHeight(), 4, ImageLoader.IntArrayToBuffer(map.src_width, map.src_height, map.pixels));
 		init();
 	}
 
@@ -242,6 +250,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		pixels =  ImageLoader.ByteBufferToIntArray2(buffer);
 		buffer_cache = buffer;
 		buffer_changed = false;
+		buffer_created = false;
 
 		initData(width, height, null, bpp);
 	}
@@ -500,28 +509,51 @@ public class DrawMap extends TextureConstruct implements Renderable {
 
 	//checked
 	public DrawMap drawFromDrawMap(int x, int y, DrawMap drawFrom, boolean drawAlpha) {
+		int srcW = (int) drawFrom.getSourceWidth();
+		int srcH = (int) drawFrom.getSourceHeight();
+		int dstW = (int) this.getSourceWidth();
+		int dstH = (int) this.getSourceHeight();
+		int[] srcPixels = drawFrom.pixels;
 
-		int source_width = (int) drawFrom.getSourceWidth();
-		int source_height = (int) drawFrom.getSourceHeight();
-		int[] sourcePixels = drawFrom.pixels;
+		for (int y2 = 0; y2 < srcH; y2++) {
+			// 1. Zeile im Ziel berechnen (Y wird geflippt, wie in deinem Original)
+			int targetY = dstH - y - y2 - 1;
 
-		if(drawAlpha) {
-			for (int y2 = 0; y2 < source_height; y2++) {
-				int targetRowY = (source_height-y-y2-1);
-				int targetOffsetBase = targetRowY*source_width+x;
-				int sourceOffsetBase = y2 * source_width;
-                if (source_width >= 0)
-                    System.arraycopy(sourcePixels, sourceOffsetBase, pixels, targetOffsetBase, source_width);
-			}
-		} else {
-			for (int y2 = 0; y2 < source_height; y2++) {
-				int targetRowY = (source_height-y-y2-1);
-				int targetOffsetBase = targetRowY*source_width+x;
-				int sourceOffsetBase = y2 * source_width;
-				for (int x2 = 0; x2 < source_width; x2++) {
-					int color = sourcePixels[sourceOffsetBase + x2];
-					if(((color >> 24) & 0xFF) > 0)  {
-						pixels[targetOffsetBase + x2] = color;
+			// CLIPPING Y: Wenn die Zeile außerhalb des Zielbildes liegt, überspringen
+			if (targetY < 0 || targetY >= dstH) continue;
+
+			// 2. Offsets berechnen
+			// WICHTIG: targetY * dstW (Ziel-Breite!)
+			int targetOffsetBase = targetY * dstW;
+			int sourceOffsetBase = y2 * srcW;
+
+			if (drawAlpha) {
+				// CLIPPING X: Startpunkt und Länge berechnen
+				int startX = Math.max(0, x);
+				int endX = Math.min(dstW, x + srcW);
+				int copyLength = endX - startX;
+
+				if (copyLength > 0) {
+					// Wir müssen den Quell-Offset anpassen, falls x negativ ist (links herausragt)
+					int srcXOffset = (x < 0) ? -x : 0;
+
+					System.arraycopy(srcPixels, sourceOffsetBase + srcXOffset,
+							pixels, targetOffsetBase + startX,
+							copyLength);
+				}
+			} else {
+				// Einzel-Pixel-Check (für Transparenz-Unterstützung ohne Blending)
+				for (int x2 = 0; x2 < srcW; x2++) {
+					int targetX = x + x2;
+
+					// CLIPPING X: Nur zeichnen, wenn x im Zielbereich liegt
+					if (targetX >= 0 && targetX < dstW) {
+						int color = srcPixels[sourceOffsetBase + x2];
+
+						// Nur zeichnen, wenn Pixel nicht volltransparent ist
+						if (((color >> 24) & 0xFF) > 0) {
+							pixels[targetOffsetBase + targetX] = color;
+						}
 					}
 				}
 			}
@@ -530,7 +562,47 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		buffer_changed = true;
 		return this;
 	}
-	
+
+//	@Deprecated // sollte von der anderen ersetzt werden hat allerdings noch probleme
+//	public DrawMap drawFromDrawMap_OLD(int x, int y, DrawMap drawFrom) { //sollte abfragen ob es out of bounds oder so ist
+//
+//		int source_width = (int) drawFrom.getSourceWidth();
+//		int source_height = (int) drawFrom.getSourceHeight();
+//
+//		for (int y2 = 0; y2 < source_height; y2++) {
+//			int y_1 = getSourceHeight() -  y - y2 -1;
+//			int dst_y = y_1 * getSourceWidth();
+//
+//			int sry_y = y2 * drawFrom.getSourceWidth();
+//			for (int x2 = 0; x2 < source_width; x2++) {
+//				int c = drawFrom.pixels[sry_y + x2];
+//
+//				if(x+x2 >= 0 && x+x2 < getSourceWidth() && dst_y >= 0 && dst_y < getSourceHeight()) {
+//					pixels[dst_y + x + x2] = c;
+//					buffer_changed = true;
+//				}
+//			}
+//		}
+//		return this;
+//	}
+
+
+//	@Deprecated
+//	public DrawMap drawFromDrawMap_OLD(int x, int y, DrawMap drawFrom) {
+//
+//		int source_width = (int) drawFrom.getSourceWidth();
+//		int source_height = (int) drawFrom.getSourceHeight();
+//
+//		for (int x2 = 0; x2 < source_width; x2++) {
+//			for (int y2 = 0; y2 < source_height; y2++) {
+//				int c = drawFrom.getPixelInt(x2, y2);
+//				drawPixel(x + x2, getSourceHeight() -  y - y2 -1, c);
+//			}
+//		}
+//
+//		buffer_changed = true;
+//		return this;
+//	}
 
 
 
@@ -936,16 +1008,64 @@ public class DrawMap extends TextureConstruct implements Renderable {
 
 	@Override
 	public void create() {
-		if(ID == 0)
-			ID = generateTextureID();
-		bindTexture(getID(), getSourceWidth(), getSourceHeight(), getBuffer(), getMinFilter(), getMagFilter());
-		buffer_bound = true;
+		// Falls die ID noch -1 ist, müssen wir sie generieren.
+		// Aber NUR im Main-Thread (über die Queue oder direkt im Renderer)
+		if (getID() == -1) {
+			ID = TextureConstruct.generateTextureID();
+		}
+
+		synchronized (this) {
+			if (!buffer_changed && buffer_cache != null && buffer_created) return;
+
+			// Sicherheits-Check: Haben wir überhaupt Daten?
+			if (pixels == null || pixels.length == 0) {
+				System.out.println("Creation failed no data!");
+				return;
+			}
+			if (!buffer_created && !buffer_changed && buffer_cache != null) {
+				buffer_cache.rewind();
+				// 4. Upload zur GPU
+				TextureConstruct.bindTexture(ID, src_width, src_height, buffer_cache);
+			} else {
+				// 1. Buffer initialisieren falls nötig
+				int capacity = src_width * src_height * 4;
+				if (buffer_cache == null || buffer_cache.capacity() != capacity) {
+					buffer_cache = BufferUtils.createByteBuffer(capacity);
+				}
+
+				// 2. Thread-Safety: Schnappschuss der Pixel-Daten
+				// Wir kopieren das Array lokal, damit ein Hintergrund-Thread
+				// während des .put() Aufrufs nichts korrumpieren kann.
+				int[] pixelsCopy = pixels.clone();
+
+				// 3. In den Native-Buffer schreiben
+				buffer_cache.clear();
+				buffer_cache.asIntBuffer().put(pixelsCopy);
+				buffer_cache.rewind();
+
+				// 4. Upload zur GPU
+				TextureConstruct.bindTexture(ID, src_width, src_height, buffer_cache);
+			}
+			buffer_changed = false;
+			buffer_created = true;
+		}
+	}
+
+	public ByteBuffer getBuffer() {
+		if (buffer_cache == null || buffer_changed) create();
+		return buffer_cache;
 	}
 
 	public void destroy() {
-		if(buffer_bound && getID() > 0) {
-			glBindTexture(GL_TEXTURE_2D, 0);
-			glDeleteTextures(getID());
+//		GL11.glDeleteTextures(ID);
+//		glBindTexture(GL_TEXTURE_2D, 0);
+//		glDeleteTextures(getID());
+
+		if (getID() > 0) {
+			ID = -1;
+			GLTaskQueue.add(() -> {
+				glDeleteTextures(ID);
+			});
 		}
 
 		if(buffer_cache != null)
@@ -962,30 +1082,12 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		
 	}
 
-	public ByteBuffer getBuffer() {
-		if (buffer_changed) {
-
-			buffer_cache.asIntBuffer().put(pixels);
-//			buffer_cache.clear();
-
-			buffer_changed = false;
-			return buffer_cache;
-		} else {
-			// Crucial: Always rewind the cache before returning it
-			// so the next OpenGL call doesn't start at the end of the buffer
-			if (buffer_cache != null) {
-				buffer_cache.rewind();
-			}
-			return buffer_cache;
-		}
-	}
-
 	public int[] getPixels() {
 		return pixels;
 	}
 
 	public boolean isLoaded() {
-		return pixels != null && pixels.length != 0 && ID > 0 ;
+		return pixels != null && pixels.length != 0;
 	}
 
 	@Override
@@ -1085,8 +1187,21 @@ public class DrawMap extends TextureConstruct implements Renderable {
 //		
 //		return new Color(R, G, B, A);			
 //	}
-	
-	
+
+
+	public void drawPixel(int x, int y, int color) {
+		try {
+			if (x >= 0 && x < getSourceWidth() && y >= 0 && y < getSourceHeight()) {
+				pixels[y * getSourceWidth() + x] = color;
+				buffer_changed = true;
+			}
+		} catch (IndexOutOfBoundsException e) {
+			if (KLIB.DEBUG_LEVEL >= 2) {
+				System.err.println(getPATH() + " Pixel x:" + x + " y:" + y + " is out ouf bounds. Max size:[" + getSourceWidth() + ":" + getSourceHeight() + "]");
+			}
+		}
+	}
+
 	public void drawPixel(int x, int y, Color c) {		
 		try {
 			if(x >= 0 && x < getSourceWidth() && y >= 0 && y < getSourceHeight()) {			
@@ -1173,7 +1288,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		glActiveTexture(GL_TEXTURE0);		
 		
 		SHADER.loadTransformationMatrix(translatePosition(), translateBounds(), rotation, flipX, flipY);
-		SHADER.load2DColor(overlayColor, overlayColorintensity);
+		SHADER.load2DColor(overlayColor.toColor(), overlayColorIntensity);
 		
 		glBindTexture(GL_TEXTURE_2D, getID());
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1201,14 +1316,18 @@ public class DrawMap extends TextureConstruct implements Renderable {
 	}	
 	
 	public ByteBuffer saveRenderImage(int x, int y, int img_width, int img_height,int target_x, int target_y, int target_width, int target_height) {
-		if(!QUAD.isCreated()) QUAD.create();
-		if(!SHADER.isCreated())  SHADER.create();	
-		
 		create();
 
-//		PNG.DEBUGBUFFER(10, 10, target_width, getBuffer());
+		int textureId = getID();
+
+		if (textureId <= 0) {
+			System.err.println("Fehler: saveRenderImage abgebrochen, da Textur-ID ungültig: " + textureId);
+			return null;
+		}
+
 		setSize(img_width, img_height);
 		setPosition(x, y);
+
 		SHADER.bind();
 		glBindVertexArray(QUAD.getVAO());
 		glEnableVertexAttribArray(0);
@@ -1216,40 +1335,85 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		glDisable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glActiveTexture(GL_TEXTURE0);		
-		
-		SHADER.loadTransformationMatrix(translatePosition(), translateBounds(), rotation, flipX, flipY);
-		SHADER.load2DColor(overlayColor, overlayColorintensity);
-		
-		glBindTexture(GL_TEXTURE_2D, getID());
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		
-		ByteBuffer buffer = BufferUtils.createByteBuffer(target_width * target_height * DEFAULT_BPP);
 
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, getID());
+
+		SHADER.loadTransformationMatrix(translatePosition(), translateBounds(), rotation, flipX, flipY);
+		if (overlayColor != null)
+			SHADER.load2DColor(overlayColor.toColor(), overlayColorIntensity);
+		
+
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+		ByteBuffer buffer = BufferUtils.createByteBuffer(target_width * target_height * DEFAULT_BPP);
 		glPixelStorei(GL_PACK_ALIGNMENT, 1); // set alignment of data in memory (this time pack alignment; a good thing to do before glReadPixels)
 		glReadPixels(target_x, target_y, target_width, target_height, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-			
-		
-		if(!buffer.isReadOnly()) {
-			buffer.flip();
-			buffer.limit(buffer.capacity());
-			buffer.position(0);					
-		}
-//		PNG.DEBUGBUFFER(10, 10, target_width, buffer);
-		
-		
-		
+
+		buffer.rewind();
+//		ImageLoader.DEBUGBUFFER(20, 20, target_width, buffer);
+
 		glEnable(GL_DEPTH_TEST);
-		glDisable(GL_BLEND);
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
 		glBindVertexArray(0);
 		SHADER.unbind();
-		
-		
-		
+
+
 		return buffer;
-		
+	}
+
+	public DrawMap setRenderImage(Vector4 image, int target_x, int target_y, int target_width, int target_height) {
+		return setRenderImage((int) image.getX(), (int) image.getY(), (int) image.getWidth(), (int) image.getHeight(), target_x, target_y, target_width, target_height);
+	}
+
+	public DrawMap setRenderImage(int x, int y, int img_width, int img_height, int target_x, int target_y, int target_width, int target_height) {
+		create();
+
+		int textureId = getID();
+
+		if (textureId <= 0) {
+			System.err.println("Fehler: saveRenderImage abgebrochen, da Textur-ID ungültig: " + textureId);
+			return null;
+		}
+
+		setSize(img_width, img_height);
+		setPosition(x, y);
+
+		SHADER.bind();
+		glBindVertexArray(QUAD.getVAO());
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+		glDisable(GL_DEPTH_TEST);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, getID());
+
+		SHADER.loadTransformationMatrix(translatePosition(), translateBounds(), rotation, flipX, flipY);
+		if (overlayColor != null)
+			SHADER.load2DColor(overlayColor.toColor(), overlayColorIntensity);
+
+
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+		ByteBuffer buffer = BufferUtils.createByteBuffer(target_width * target_height * DEFAULT_BPP);
+		glPixelStorei(GL_PACK_ALIGNMENT, 1); // set alignment of data in memory (this time pack alignment; a good thing to do before glReadPixels)
+		glReadPixels(target_x, target_y, target_width, target_height, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+
+		buffer.rewind();
+//		ImageLoader.DEBUGBUFFER(20, 20, target_width, buffer);
+
+		glEnable(GL_DEPTH_TEST);
+		glDisableVertexAttribArray(0);
+		glDisableVertexAttribArray(1);
+		glBindVertexArray(0);
+		SHADER.unbind();
+
+		set(target_width, target_height, buffer);
+
+		return this;
 	}
 	
 
@@ -1276,7 +1440,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 					
 					Vector2 npos = texture.translatePosition(pos.getX(), pos.getY(), size); // <---
 					shader.loadTransformationMatrix(npos, nsize, texture.rotation, texture.flipX, texture.flipY);
-					shader.load2DColor(texture.overlayColor, texture.overlayColorintensity);
+					shader.load2DColor(texture.overlayColor.toColor(), texture.overlayColorIntensity);
 					glBindTexture(GL_TEXTURE_2D, texture.getID());
 					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);				
 				}		
@@ -1313,7 +1477,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 			map.create();
 
 			shader.loadTransformationMatrix(transl.getPosition(), transl.getSize(), map.rotation, map.flipX, map.flipY);
-			shader.load2DColor(map.overlayColor, map.overlayColorintensity);
+			shader.load2DColor(map.overlayColor.toColor(), map.overlayColorIntensity);
 			glBindTexture(GL_TEXTURE_2D, map.getID());
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);	
 			
@@ -1341,7 +1505,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 
 		// 2. Farbe einmal setzen (sofern sie für alle Instanzen gleich ist)
 		if(overlayColor != null)
-			shader.load2DColor(overlayColor, overlayColorintensity);
+			shader.load2DColor(overlayColor.toColor(), overlayColorIntensity);
 
 		for(Vector4 bound : positions) {
 			Vector2 nsize = translateBounds(bound.getWidth(), bound.getHeight());
