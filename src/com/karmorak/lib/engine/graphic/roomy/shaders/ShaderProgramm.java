@@ -47,13 +47,9 @@ public abstract class ShaderProgramm {
 			NUMBER_OF_ROWS = "numberOfRows",
 			OFFSET = "offset",
 			MINIMUMLIGHT = "minLight";
-	
-	
-	
 
-	
-	
-	public ShaderProgramm(String vertexPath, String fragmentPath) {
+
+    public ShaderProgramm(String vertexPath, String fragmentPath) {
 			vertexFile = FileUtils.loadShader(vertexPath);
 			fragmentFile = FileUtils.loadShader(fragmentPath);
 	}
@@ -85,6 +81,7 @@ public abstract class ShaderProgramm {
 	public void setUniform(String name, float value) {
 		glUniform1f(getUniformLocation(name),(float) value);
 	}
+
 	public void setUniform(String name, int value) {
 		glUniform1i(getUniformLocation(name), value);
 	}
@@ -98,12 +95,10 @@ public abstract class ShaderProgramm {
 		glUniform3f(getUniformLocation(name), value.getX(), value.getY(), value.getZ());
 	}
 	public void setUniform(String name, Vector4 value) {
-		glUniform4f(getUniformLocation(name), value.getX(), value.getY(), value.getWidth(), value.getHeight());
+        glUniform4f(getUniformLocation(name), value.getX(), value.getY(), value.getZ(), value.getW());
 	}
 	public void setUniform(String name, Matrix4 value) {
-		FloatBuffer matrix = MemoryUtil.memAllocFloat(Matrix4.SIZE * Matrix4.SIZE);
-		matrix.put(value.getAll()).flip();
-		glUniformMatrix4fv(getUniformLocation(name), true, matrix);
+        glUniformMatrix4fv(getUniformLocation(name), true, value.getAll());
 	}
 	
 	public void bind() {

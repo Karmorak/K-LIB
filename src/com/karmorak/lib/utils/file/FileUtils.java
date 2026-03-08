@@ -17,8 +17,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ import javax.imageio.ImageIO;
 import com.karmorak.lib.KLIB;
 
 import org.lwjgl.PointerBuffer;
+import org.lwjgl.stb.STBImageWrite;
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
 import shaders.shader_src.Loader;
 
@@ -59,10 +62,96 @@ public class FileUtils {
 			// der die Pfade mit einem vertikalen Strich '|' trennt.
 			return result.split("\\|");
 		}
-
 		return null; // Nutzer hat abgebrochen
 	}
 
+    public static String[] selectFiles(String[] filters) {
+
+        PointerBuffer filter = null;
+        if (filters != null && filters.length != 0) {
+            filter = org.lwjgl.system.MemoryUtil.memAllocPointer(filters.length);
+            for (String s : filters) {
+                filter.put(org.lwjgl.system.MemoryUtil.memUTF8(s));
+            }
+            filter.flip();
+        }
+
+
+        // Der Aufruf für den File-Dialog
+        // Parameter: Titel, Startpfad, Filter, Filterbeschreibung, Mehrfachauswahl erlaubt?
+        String result = TinyFileDialogs.tinyfd_openFileDialog(
+                "Wähle Dateien aus",
+                "C:\\",
+                filter,
+                "Text oder Bilder",
+                true // true = Mehrfachauswahl aktiviert
+        );
+
+        // Speicher wieder freigeben
+        if (filter != null)
+            org.lwjgl.system.MemoryUtil.memFree(filter);
+
+        if (result != null) {
+            // TinyFileDialogs gibt bei Mehrfachauswahl einen String zurück,
+            // der die Pfade mit einem vertikalen Strich '|' trennt.
+            return result.split("\\|");
+        }
+        return null; // Nutzer hat abgebrochen
+    }
+
+    public static String selectFolder() {
+        return TinyFileDialogs.tinyfd_selectFolderDialog(
+                "Wähle Dateien aus",
+                "C:\\");
+    }
+
+    public static boolean isImageType(String mimeType) {
+        try {
+            Path path = Paths.get(mimeType);
+            String contentType = Files.probeContentType(path);
+            return contentType != null && contentType.startsWith("image");
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public static String[] selectFileLimited(int limit, boolean smaller_allowed, boolean larger_allowed) {
+
+        String result = TinyFileDialogs.tinyfd_openFileDialog(
+                "Wähle 4 Bilder", "", null, null, true
+        );
+        if (result == null) {
+            return null;
+        }
+
+        String[] files = result.split("\\|");
+
+        if (!smaller_allowed) {
+            if (files.length < limit) {
+                if (larger_allowed) {
+                    TinyFileDialogs.tinyfd_messageBox
+                            ("Fehler", "Du musst mindestens" + limit + "  Dateien auswählen!", "ok", "error", 1);
+                } else {
+                    TinyFileDialogs.tinyfd_messageBox
+                            ("Fehler", "Du musst" + limit + "  Dateien auswählen!", "ok", "error", 1);
+                }
+                return selectFileLimited(limit, smaller_allowed, larger_allowed);
+            }
+        }
+        if (!larger_allowed) {
+            if (files.length > limit) {
+                if (smaller_allowed) {
+                    TinyFileDialogs.tinyfd_messageBox
+                            ("Fehler", "Du kannst maximal " + limit + "  Dateien auswählen!", "ok", "error", 1);
+                } else {
+                    TinyFileDialogs.tinyfd_messageBox
+                            ("Fehler", "Du musst" + limit + "  Dateien auswählen!", "ok", "error", 1);
+                }
+                return selectFileLimited(limit, smaller_allowed, larger_allowed);
+            }
+        }
+        return files;
+    }
 
 	public static String loadShader(String path) {
 		StringBuilder result = new StringBuilder();
@@ -125,8 +214,8 @@ public class FileUtils {
 					if(c == '\n') {
 						c = (char) -1;	
 						line = line.substring(0, line.length());
-						
-						lines.add(""+line);						
+
+                        lines.add(line);
 						line = "";
 					} else {
 						line += c;
@@ -188,6 +277,40 @@ public class FileUtils {
 	        return result;
     	}
     }
+
+    public static void writeImage(String type, String path, int width, int height, int bpp, ByteBuffer image) {
+        //hdr, tga, bmp, jpg, png
+        boolean success;
+        if (!path.endsWith("." + type)) {
+            path += "." + type;
+        } else if (!path.endsWith(type)) {
+            path += type;
+        }
+
+        if (type.equals("png")) {
+            success = STBImageWrite.stbi_write_png(
+                    path, width, height, bpp, image, width * bpp);
+        } else if (type.equals("jpg") || type.equals("jpeg")) {
+            success = STBImageWrite.stbi_write_jpg(
+                    path, width, height, bpp, image, 90);
+        } else if (type.equals("bmp")) {
+            success = STBImageWrite.stbi_write_bmp(
+                    path, width, height, bpp, image);
+        } else if (type.equals("tga")) {
+            success = STBImageWrite.stbi_write_tga(
+                    path, width, height, bpp, image);
+        } else {
+            System.out.println("Format " + type + " not supported");
+            return;
+        }
+
+        if (success) {
+            System.out.println("Bild gespeichert unter " + path);
+        } else {
+            System.out.println("Fehler beim Laden des Bildes " + path);
+        }
+
+    }
 	
 	public static boolean moveFile(String source, String destination, boolean replace) throws IOException {
 		
@@ -230,21 +353,14 @@ public class FileUtils {
 	    		return false;
 	    	}
 	    }
-	    
-	    InputStream is = null;
-	    OutputStream os = null;
-	    try {
-	        is = new FileInputStream(source);
-	        os = new FileOutputStream(destination);
-	        byte[] buffer = new byte[1024];
-	        int length;
-	        while ((length = is.read(buffer)) > 0) {
-	            os.write(buffer, 0, length);
-	        }
-	    } finally {
-	        is.close();
-	        os.close();
-	    }
+
+        try (InputStream is = new FileInputStream(source); OutputStream os = new FileOutputStream(destination)) {
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = is.read(buffer)) > 0) {
+                os.write(buffer, 0, length);
+            }
+        }
 	    return true;
 	}
 	
@@ -269,7 +385,7 @@ public class FileUtils {
 		ArrayList<String> lines = null;
 		if(mode > 0) {
 			lines = readFiletoArray(f);
-			if(lines.isEmpty()) {throw new IOException();}
+//			if(lines.isEmpty()) {throw new IOException();}
 		} else {
 			checkFile(f);
 		}

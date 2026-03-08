@@ -31,6 +31,7 @@ public class CharTexture extends TextureConstruct {
 //		pos = new Vector2(0, 0);
 //		size = new Vector2(DATA.getWIDTH(), DATA.getHEIGHT());
 		rotation = Vector3.EMPTY;
+//		flipY = true;
 //		translBounds.set(translatePosition(), translateBounds());
 		
 //		overlayColor = null;
@@ -42,7 +43,7 @@ public class CharTexture extends TextureConstruct {
 	
 	static TextureData getDrawData(DrawMap drawFrom, int texX, int texY, int texWidth, int texHeight) {
 
-		ByteBuffer buffer =  drawFrom.getPixels_asByteBuffer(texX, texY, texWidth, texHeight);
+        ByteBuffer buffer = drawFrom.getPixels_asByteBuffer(texX, texY, texWidth, texHeight);
         buffer.rewind();
 		int id = TextureConstruct.generateTextureID();
 		bindTexture(id, texWidth, texHeight, buffer, GL_NEAREST, GL_LINEAR);
@@ -81,10 +82,7 @@ public class CharTexture extends TextureConstruct {
 //		shader.load2DColor(texture.overlayColor, texture.overlayColorintensity);
 
 		for(OwnCharData oc : arrayList) {
-			Vector2 nsize = oc.getTranslatedSize();
-			Vector2 npos = oc.getTranslatedPosition();
-//			System.out.println(oc.c + "" + npos.getX());
-			shader.loadTransformationMatrix(npos, nsize, texture.rotation, texture.flipX, texture.flipY);
+            shader.loadTransformation(oc.getX(), oc.getY(), oc.getWidth(), oc.getHeight(), 0, oc.getScale(), false, false);
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		}
 

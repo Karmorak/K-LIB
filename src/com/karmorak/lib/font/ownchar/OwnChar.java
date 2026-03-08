@@ -9,7 +9,7 @@ public class OwnChar extends OwnCharData {
 	OwnChar(OwnFont font, CharIdentifier c) {
 		super(c);
 		bounds.set(font.DATA.getBounds(c));
-		translated_pos.set(translatePosX(pos.getX()), translatePosY(pos.getY()));
+        pos.set(pos.getX(), pos.getY());
 		setScale(1f);
 	}
 
@@ -18,15 +18,6 @@ public class OwnChar extends OwnCharData {
 		return "" + ((CharIdentifier) getIdentifier()).value();
 	}
 
-
-	protected void translatePosition(int x, int y) {
-		translated_pos.set(translatePosX(x), translatePosY(y));
-		pos.set(x, y);
-	}
-
-	protected void updatePosition() {
-		translated_pos.set(translatePosX(pos.getX()), translatePosY(pos.getY()));
-	}
 
 
 }

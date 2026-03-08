@@ -18,7 +18,7 @@ public class GameState_PhsyicTest implements GameState {
 	DrawMap d;
 	
 	@Override
-	public void init() {
+    public boolean init() {
 		
 		engine = new Engine();
 		
@@ -55,7 +55,8 @@ public class GameState_PhsyicTest implements GameState {
 //		d.fillTriangle(new Vector2(128, 128), new Vector2(228, 128), new Vector2(128, 28), Color.RED);
 //		d.fillTriangle(new Vector2(63, 63), new Vector2(1, 1), new Vector2(63, 1), Color.RED);
 		d.fillTriangle(new Vector2(52, 20), new Vector2(50, 1), new Vector2(36, 45), Color.RED());
-		
+
+        return true;
 	}
 	
 	boolean updated = false;
@@ -64,7 +65,7 @@ public class GameState_PhsyicTest implements GameState {
 	int state = 0;
 	
 	@Override
-	public void update(float deltaTime) {
+    public void update(double deltaTime) {
 		
 		engine.updateEngine();
 		updatePoints();

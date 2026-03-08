@@ -40,7 +40,12 @@ public class Texture extends TextureConstruct implements Renderable {
 
 	static int BPP = 4;
 	public final TextureData DATA;
-	
+
+    public Texture(String path) {
+        DATA = (loadURL(path));
+        init();
+    }
+
 	public Texture(URL path) {
 		DATA = (loadURL(path));
 		init();
@@ -129,21 +134,11 @@ public class Texture extends TextureConstruct implements Renderable {
 		scale = 1f;
 		pos = new Vector2(0, 0);
 		size = new Vector2(DATA.getWIDTH(), DATA.getHEIGHT());
-		rotation = new Vector3(0, 0, 0);
-		translBounds.set(translatePosition(), translateBounds());
-
-		overlayColor = ColorPreset.WHITE.toColor();
+        rotation = Vector3.EMPTY;
+        overlayColor = ColorPreset.WHITE;
 		overlayColorIntensity = 1f;
 	}
-	
 
-
-
-	
-
-	
-
-		
 	public static void render(List<Texture> textures, TextureShader shader) {		
 		glBindVertexArray(QUAD.getVAO());
 		glEnableVertexAttribArray(0);
@@ -155,8 +150,7 @@ public class Texture extends TextureConstruct implements Renderable {
 		glActiveTexture(GL_TEXTURE0);
 		
 		for(Texture t : textures) {
-					
-			shader.loadTransformationMatrix(t.translBounds.getPosition(), t.translBounds.getSize(), true);
+            SHADER.loadTransformation((int) t.getX(), (int) t.getY(), (int) t.getWidth(), (int) t.getHeight(), t.rotation.getZ(), 1f, false, false);
 			shader.load2DColor(t.overlayColor.toColor(), t.overlayColorIntensity);
 			glBindTexture(GL_TEXTURE_2D, t.DATA.getID());
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -179,13 +173,9 @@ public class Texture extends TextureConstruct implements Renderable {
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		glActiveTexture(GL_TEXTURE0);		
-		
-		
-		Vector2 bounds = translateBounds(width, height);
-		Vector2 pos = translatePosition(x, y, bounds); // <---
-		
-		SHADER.loadTransformationMatrix(pos, bounds, rotation, flipX, flipY);
+        glActiveTexture(GL_TEXTURE0);
+
+        SHADER.loadTransformation((int) pos.getX(), (int) pos.getY(), (int) size.getWidth(), (int) size.getHeight(), rotation.getZ(), scale, flipX, flipY);
 		SHADER.load2DColor(overlayColor.toColor(), overlayColorIntensity);
 		glBindTexture(GL_TEXTURE_2D, DATA.getID());
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -211,10 +201,8 @@ public class Texture extends TextureConstruct implements Renderable {
 		
 		for(Texture texture : newTextures.keySet()) {	
 			for(Vector2 size : newTextures.get(texture).keySet()) {
-				Vector2 nsize = texture.translateBounds(size.getWidth(), size.getHeight());
 				for (Vector2 pos : newTextures.get(texture).get(size)) {
-					Vector2 npos = texture.translatePosition(pos.getX(), pos.getY(), size); // <---
-					textureShader.loadTransformationMatrix(npos, nsize, texture.rotation, texture.flipX, texture.flipY);
+                    SHADER.loadTransformation((int) pos.getX(), (int) pos.getY(), (int) size.getWidth(), (int) size.getHeight(), texture.rotation.getZ(), texture.scale, texture.flipX, texture.flipY);
 					textureShader.load2DColor(texture.overlayColor.toColor(), texture.overlayColorIntensity);
 					glBindTexture(GL_TEXTURE_2D, texture.DATA.getID());
 					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);				
@@ -241,9 +229,7 @@ public class Texture extends TextureConstruct implements Renderable {
 		glActiveTexture(GL_TEXTURE0);
 				
 		for(Vector4 bound : bounds) {
-			Vector2 nsize = texture.translateBounds(bound.getWidth(), bound.getHeight());
-			Vector2 npos = texture.translatePosition(bound.getX(), bound.getY(), bound.getSize()); // <---
-			textureShader.loadTransformationMatrix(npos, nsize, texture.rotation, texture.flipX, texture.flipY);
+            SHADER.loadTransformation((int) bound.getX(), (int) bound.getY(), (int) bound.getWidth(), (int) bound.getHeight(), texture.rotation.getZ(), texture.scale, texture.flipX, texture.flipY);
 			textureShader.load2DColor(texture.overlayColor.toColor(), texture.overlayColorIntensity);
 			glBindTexture(GL_TEXTURE_2D, texture.DATA.getID());
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);		
@@ -279,9 +265,10 @@ public class Texture extends TextureConstruct implements Renderable {
 		glDisable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glActiveTexture(GL_TEXTURE0);		
-		
-		SHADER.loadTransformationMatrix(translatePosition(), translateBounds(), rotation, flipX, flipY);
+		glActiveTexture(GL_TEXTURE0);
+
+//		SHADER.loadTransformationMatrix(translatePosition(), translateBounds(), rotation, flipX, flipY);
+        SHADER.loadTransformation((int) getX(), (int) getY(), (int) getWidth(), (int) getHeight(), rotation.getZ(), scale, flipX, flipY);
 		SHADER.load2DColor(overlayColor.toColor(), overlayColorIntensity);
 		
 		glBindTexture(GL_TEXTURE_2D, DATA.ID);
@@ -319,11 +306,9 @@ public class Texture extends TextureConstruct implements Renderable {
 		shader.load2DColor(overlayColor.toColor(), overlayColorIntensity);
 
 		for(Vector4 bound : positions) {
-			Vector2 nsize = translateBounds(bound.getWidth(), bound.getHeight());
-			Vector2 npos = translatePosition(bound.getX(), bound.getY(), bound.getSize());
-
-			// Nur die Matrix muss sich pro Objekt ändern
-			shader.loadTransformationMatrix(npos, nsize, rotation, flipX, flipY);
+//			// Nur die Matrix muss sich pro Objekt ändern
+//			shader.loadTransformationMatrix(npos, nsize, rotation, flipX, flipY);
+            SHADER.loadTransformation((int) bound.getX(), (int) bound.getY(), (int) bound.getWidth(), (int) bound.getHeight(), rotation.getZ(), scale, false, false);
 
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		}

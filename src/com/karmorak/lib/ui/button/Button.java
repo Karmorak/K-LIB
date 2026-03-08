@@ -27,9 +27,9 @@ public class Button implements Comparable<Button> {
 	public static final FontFilePathHandle thick_handle = new FontFilePathHandle(KLIB.URL(FONT_PATH + "font_thick.png"), KLIB.URL(FONT_PATH + "font_thick.txt"));	
 	public	static final FontFilePathHandle georgia_bold = new FontFilePathHandle(KLIB.URL(FONT_PATH + "font_georgia_bold.png"), KLIB.URL(FONT_PATH + "font_georgia_bold.txt"));
 //	static final FontFilePathHandle handle = new FontFilePathHandle(URL(FONT_PATH + "font.png"), URL(FONT_PATH + "font.txt"), URL(FONT_PATH + "font_thick.png"), URL(FONT_PATH + "font_thick.txt"));	
-	static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toColor());
-	static final OwnFont DEF_THICK_FONT = new OwnFont(thick_handle, ColorPreset.BLACK.toColor());
-	static final OwnFont DEF_NEW_FONT = new OwnFont(georgia_bold, ColorPreset.BLACK.toColor());
+public static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toColor());
+	public static final OwnFont DEF_THICK_FONT = new OwnFont(thick_handle, ColorPreset.BLACK.toColor());
+	public static final OwnFont DEF_NEW_FONT = new OwnFont(georgia_bold, ColorPreset.BLACK.toColor());
 	
 	static OwnFont default_font = DEF_FONT;
 		
@@ -95,7 +95,7 @@ public class Button implements Comparable<Button> {
 	 * 			- unselect_on_click
 	 * 			- keep_selected
 	 * 	 - hangs now update their position if the father is moved or scaled
-	 *	 - due to the new font system getName().length is not allways correct instead now use getNameLength()
+	 *	 - due to the new font system getName().length is not always correct instead now use getNameLength()
 	 *
 	 *   
 	 */
@@ -323,7 +323,13 @@ public class Button implements Comparable<Button> {
 	public void show(boolean bool) {
 		show = bool;
 	}
+
+	@Deprecated
 	public boolean getshow() {
+		return show;
+	}
+
+	public boolean isShow() {
 		return show;
 	}
 	
@@ -650,18 +656,18 @@ public class Button implements Comparable<Button> {
 	public float getWidth(int line) {			
 		return text.getWidth(line);	
 	}
-		
-	@Deprecated
-	public float getWidth_real() {
-		return text.getSize_Total().getWidth();
-	}
-	
+
 	public float getWidthTotal() {
-		return text.getSize_Total().getWidth();
+		return text.getTotalWidth();
 	}
 		
 	public Button setHeight(float height) {
 		text.setHeight((int) height);
+		return this;
+	}
+
+	public Button setTotalHeight(float height) {
+		text.setTotalHeight((int) height);
 		return this;
 	}
 	
@@ -788,7 +794,11 @@ public class Button implements Comparable<Button> {
 	public float getDefFontScale() {
 		return default_font.getScale();
 	}
-	
+
+	public static void setDefaultColor(Colorable color) {
+		defColor.set(color);
+	}
+
 	public static void setDefFontColor(Colorable color) {
 		defColor.set(color);
 	}

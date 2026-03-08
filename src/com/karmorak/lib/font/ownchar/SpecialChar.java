@@ -8,7 +8,7 @@ public class SpecialChar extends OwnCharData {
     SpecialChar(OwnFont font, StringIdentifier c) {
         super(c);
         bounds.set(font.DATA.getBounds(c));
-        translated_pos.set(translatePosX(pos.getX()), translatePosY(pos.getY()));
+        pos.set(pos.getX(), pos.getY());
         setScale(1f);
     }
 
@@ -17,13 +17,9 @@ public class SpecialChar extends OwnCharData {
         return ((StringIdentifier) getIdentifier()).value();
     }
 
-    protected void translatePosition(int x, int y) {
-        translated_pos.set(translatePosX(x), translatePosY(y));
-        pos.set(x, y);
-    }
 
     protected void updatePosition() {
-        translated_pos.set(translatePosX(pos.getX()), translatePosY(pos.getY()));
+        pos.set(pos.getX(), pos.getY());
     }
 
 

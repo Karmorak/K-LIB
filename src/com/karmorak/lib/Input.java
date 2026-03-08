@@ -1,5 +1,6 @@
 package com.karmorak.lib;
 
+import com.karmorak.lib.gamestate.StateManager;
 import org.lwjgl.glfw.GLFWKeyCallback;
 import org.lwjgl.glfw.GLFWMouseButtonCallback;
 import org.lwjgl.glfw.GLFWScrollCallback;
@@ -9,9 +10,6 @@ import com.karmorak.lib.math.Vector2;
 import com.karmorak.lib.ui.button.Button;
 
 import static org.lwjgl.glfw.GLFW.*;
-
-import java.util.ArrayList;
-
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWCharCallback;
 import org.lwjgl.glfw.GLFWCursorPosCallback;
@@ -27,6 +25,8 @@ public class Input {
 //	@Deprecated
 	public static char lastKey;
 //	public static ArrayList<Character> lastKeys = new ArrayList<>();
+
+    static boolean option_scroll_shift = false;
 	
 	public GLFWKeyCallback getKeyboardCallback() {		
 		return keyboard;
@@ -35,8 +35,7 @@ public class Input {
 	public GLFWCharCallback getCharCallback() {
 		return keyboard_chars;		
 	}
-	
-	
+
 	public void setKeyboardCallback(GLFWKeyCallback keyboard) {
 		this.keyboard = keyboard;
 	}
@@ -103,6 +102,7 @@ public class Input {
 			public void invoke(long window, int codepoint) {
 				lastKey = (char) codepoint;
 				GSM.keyTyped(0, (char) codepoint);
+                StateManager.keyTyped(0, (char) codepoint);
 				if(updateButtons) Button.keyTyped(0, (char) codepoint);
 			}
 		};
@@ -130,11 +130,14 @@ public class Input {
 					
 					if(action == GLFW_RELEASE) {
 						GSM.keyUp(key, c);
+                        StateManager.keyUp(key);
 					} else if (action == GLFW_PRESS) {//presss/tap the key
 						GSM.keyDown(key, action, modifier);
+                        StateManager.keyDown(key, action, modifier);
 						if(updateButtons) Button.keyDown(key, action, modifier);
 					} else if (action == GLFW_REPEAT) {//hold the key
 						GSM.keyDown(key, action, modifier);
+                        StateManager.keyDown(key, action, modifier);
 						if(updateButtons) Button.keyDown(key, action, modifier);
 					}
 				}
@@ -165,9 +168,11 @@ public class Input {
 				
 				if(updateButtons) Button.mouseMoved((int)mouse.getX(),(int) ( mouse.getY()));
 				GSM.mouseMoved((int)mouse.getX(),(int) mouse.getY());
+                StateManager.mouseMoved((int) mouse.getX(), (int) mouse.getY());
 				if(mouseDown) {
 					if(updateButtons) Button.touchDragged((int)mouse.getX(), (int) mouse.getY(), 0);
 					GSM.touchDragged((int)mouse.getX(), (int) mouse.getY(), 0);
+                    StateManager.touchDragged((int) mouse.getX(), (int) mouse.getY(), 0);
 					mouseDragged = true;
 				}
 				
@@ -179,17 +184,21 @@ public class Input {
 				buttons[button] = action != GLFW_RELEASE;
 				if(action != GLFW_RELEASE) {
 					GSM.touchDown(mouse.getX(), mouse.getY(), action, button);
+                    StateManager.touchDown(mouse.getX(), mouse.getY(), action, mods);
 					mouseDown = true;
 				} else {
+                    StateManager.touchUp(mouse.getX(), mouse.getY(), action, mods);
 					GSM.touchUp(mouse.getX(), mouse.getY(), action, mods);
 					if(updateButtons) Button.touchUp((int)mouse.getX(), (int)mouse.getY(), action, mods);
 					mouseDown = false;
 					if(!mouseDragged) {
 						if(updateButtons) Button.touchDown((int)mouse.getX(),(int) mouse.getY(), action, mods);
+                        StateManager.tap(mouse.getX(), mouse.getY(), action, button);
 						GSM.tap(mouse.getX(), mouse.getY(), action, button);
 					} else {
 						mouseDragged = false;
 						if(updateButtons) Button.touchDown((int)mouse.getX(),(int) mouse.getY(), action, mods);
+                        StateManager.tap(mouse.getX(), mouse.getY(), action, button);
 						GSM.tap(mouse.getX(), mouse.getY(), action, button);
 					}
 				}
@@ -197,9 +206,20 @@ public class Input {
 		};
 		
 		mouseScroll = new GLFWScrollCallback() {
-			public void invoke(long window, double offsetx, double offsety) {
-				GSM.scrolled(offsety);
-				scrolled.set((float)offsetx,(float) offsety);
+            public void invoke(long window, double offset_x, double offset_y) {
+                double finalX = offset_x;
+                double finalY = offset_y;
+
+                // Falls der User Shift hält, wird vertikales Scrollen zu horizontalem
+                if (option_scroll_shift && (keys[GLFW_KEY_LEFT_SHIFT] || keys[GLFW_KEY_RIGHT_SHIFT])) {
+                    finalX = offset_y;
+                    finalY = 0;
+                }
+
+                GSM.scrolled(finalY);
+                GSM.scrolled(finalX, finalY);
+                StateManager.scrolled(finalX, finalY);
+                scrolled.set((float) offset_x, (float) offset_y);
 			}
 		};
 	}
@@ -228,5 +248,6 @@ public class Input {
 		mousePosition.free();
 		mouseScroll.free();
 	}
-	
+
+
 }

@@ -124,7 +124,7 @@ public class HttpServerTest extends Running {
 	
 	
 	@Override
-	public void update() {		
+    public void update(double delta) {
 	
 		
 		

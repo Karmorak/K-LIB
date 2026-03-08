@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.karmorak.lib.KLIB;
 import com.karmorak.lib.Running;
 import com.karmorak.lib.engine.graphic.flat.DrawMap;
 import com.karmorak.lib.engine.graphic.flat.CharTexture;
@@ -37,6 +38,7 @@ import com.karmorak.lib.engine.objects.OBJECT;
 import com.karmorak.lib.engine.terrain.Terrain;
 import com.karmorak.lib.font.ownchar.OwnCharData;
 import com.karmorak.lib.math.Vector2;
+import com.karmorak.lib.math.Vector2i;
 import com.karmorak.lib.math.Vector3;
 import com.karmorak.lib.math.Vector4;
 
@@ -63,6 +65,7 @@ public final class MasterRenderer {
 	private int biggestcache = 1;
 	
 	private Vector3 backgroundColor = new Vector3(0.7f, 1f, 1f);
+    public static boolean updateWindow = true;
 	
 	
 	public static class drawData {
@@ -71,10 +74,6 @@ public final class MasterRenderer {
 	}
 	
 	public MasterRenderer() {
-		enableCulling();
-
-
-				
 		renderer = new Renderer(shader);
 		terrainRenderer = new TerrainRenderer(terrainShader);
 		
@@ -86,8 +85,9 @@ public final class MasterRenderer {
 	}
 	
 	public void create() {
+        enableCulling();
 		if(!shader.isCreated()) shader.create();
-		terrainRenderer.create();
+//		terrainRenderer.create(); /* not in use */
 		Renderable.init();
 		textureShader = Renderable.getShader();
 	}
@@ -97,7 +97,10 @@ public final class MasterRenderer {
 		synchronized(newTextures) { // Wichtig gegen den Crash!
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glClearColor(backgroundColor.getX(), backgroundColor.getY(), backgroundColor.getZ(), 0f);
+
 			textureShader.bind();
+            if (updateWindow)
+                textureShader.loadProjectionMatrix((int) KLIB.graphic.Width(), (int) KLIB.graphic.Height());
 
 			startrender(Texture.getVAO());
 
@@ -129,6 +132,9 @@ public final class MasterRenderer {
 		}
 	}
 
+    public static void updateWindowSize() {
+        updateWindow = true;
+    }
 	
 	public void render(Light l, Camera camera, Running run) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
@@ -172,8 +178,6 @@ public final class MasterRenderer {
 					}
 				}
 			}
-
-
 		}
 		endrender();
 		textureShader.unbind();		
@@ -226,23 +230,81 @@ public final class MasterRenderer {
 		renderer.render(obj);	
 		shader.unbind();
 	}
-	
-	
-	
-	
-	
-	public void process(TextureConstruct texture) {
-		process(texture, texture.getPosition(), texture.getSize(), 0);	
+
+
+    public void process(TextureConstruct texture) {
+        process(texture, texture.getPosition(), texture.getWidthUnscaled(), texture.getHeightUnscaled(), 0);
+    }
+
+    public void process(TextureConstruct texture, int layer) {
+        process(texture, texture.getPosition(), texture.getWidthUnscaled(), texture.getHeightUnscaled(), layer);
+    }
+
+    public void process(TextureConstruct texture, int pos_x, int pos_y) {
+        process(texture, pos_x, pos_y, texture.getWidthUnscaled(), texture.getHeightUnscaled(), 0);
+    }
+
+    public void process(TextureConstruct texture, int pos_x, int pos_y, int layer) {
+        process(texture, pos_x, pos_y, texture.getWidthUnscaled(), texture.getHeightUnscaled(), layer);
 	}
-	
+
+    public void process(TextureConstruct texture, Vector2 position, Vector2 size) {
+        this.process(texture, (int) position.getX(), (int) position.getY(), (int) size.getWidth(), (int) size.getHeight(), 0);
+    }
 	public void process(TextureConstruct texture, Vector2 position, Vector2 size, int layer) {
-		if(texture instanceof Texture) {
-			processTexture((Texture) texture, position, size, layer);
-		} else if(texture instanceof DrawMap) {
-			processDrawMap((DrawMap) texture, position, size, layer);
-		} else if(texture instanceof TextureRegion) {
-			processTextureRegion((TextureRegion) texture, position, size, layer);
-		}	
+        this.process(texture, (int) position.getX(), (int) position.getY(), (int) size.getWidth(), (int) size.getHeight(), layer);
+    }
+
+    public void process(TextureConstruct texture, Vector2 position, int size_x, int size_y) {
+        this.process(texture, (int) position.getX(), (int) position.getY(), size_x, size_y, 0);
+    }
+
+    public void process(TextureConstruct texture, Vector2 position, int size_x, int size_y, int layer) {
+        this.process(texture, (int) position.getX(), (int) position.getY(), size_x, size_y, layer);
+    }
+
+    public void process(TextureConstruct texture, Vector2i position, Vector2i size) {
+        this.process(texture, position.getX(), position.getY(), size.getWidth(), size.getHeight(), 0);
+    }
+
+    public void process(TextureConstruct texture, Vector2i position, Vector2i size, int layer) {
+        this.process(texture, position.getX(), position.getY(), size.getWidth(), size.getHeight(), layer);
+    }
+
+    public void process(TextureConstruct texture, int pos_x, int pos_y, Vector2i size) {
+        this.process(texture, pos_x, pos_y, size.getWidth(), size.getHeight(), 0);
+    }
+
+    public void process(TextureConstruct texture, int pos_x, int pos_y, Vector2i size, int layer) {
+        this.process(texture, pos_x, pos_y, size.getWidth(), size.getHeight(), layer);
+    }
+
+    public void process(TextureConstruct texture, int pos_x, int pos_y, int size_x, int size_y) {
+        this.process(texture, pos_x, pos_y, size_x, size_y, 0);
+    }
+
+    public void process(TextureConstruct texture, int pos_x, int pos_y, int size_x, int size_y, int layer) {
+        Vector4 bounds = new Vector4(pos_x, pos_y, size_x, size_y);
+
+        if (newTextures.get(layer) == null) {
+            ArrayList<TextureConstruct> ar = new ArrayList<TextureConstruct>();
+            ar.add(texture);
+            newTextures.put(layer, ar);
+        } else {
+            if (!newTextures.get(layer).contains(texture))
+                newTextures.get(layer).add(texture);
+        }
+
+        if (TextureDatas.get(texture) == null) {
+            ArrayList<Vector4> ar2 = new ArrayList<Vector4>();
+            ar2.add(bounds);
+            TextureDatas.put(texture, ar2);
+        } else {
+            TextureDatas.get(texture).add(bounds);
+        }
+
+        if (layer + 1 > biggestcache)
+            biggestcache = layer + 1;
 	}
 	
 	public void processChar(CharTexture t_char, OwnCharData oc, int layer) {
@@ -268,26 +330,17 @@ public final class MasterRenderer {
 			biggestcache = layer+1;
 	}
 	
-	public void processChar(Texture t_char, int trans_X, int trans_Y, int trans_Width, int trans_Height, int layer) {
-		
-	}
-	
 	public void processDrawMap(DrawMap texture, int layer) {
-		processDrawMap(texture, texture.getX(), texture.getY(), texture.getWidth(), texture.getHeight(), layer);
+        processDrawMap(texture, texture.getX(), texture.getY(), texture.getSourceWidth(), texture.getSourceHeight(), layer);
 	}
-	
-	
 	public void processDrawMap(DrawMap texture, float pos_x, float pos_y, int layer) {
-		processDrawMap(texture, pos_x, pos_y, texture.getWidth(), texture.getHeight(), layer);
+        processDrawMap(texture, pos_x, pos_y, texture.getSourceWidth(), texture.getSourceHeight(), layer);
 	}
-	
 	public void processDrawMap(DrawMap texture, Vector2 pos , Vector2 size, int layer) {		
 		processDrawMap(texture, pos.getX(), pos.getY(), size.getWidth(), size.getHeight(), layer);
 	}
-	
 	public void processDrawMap(DrawMap texture, float pos_x, float pos_y, float size_x, float size_y, int layer) {
-		Vector2 pos = new Vector2(pos_x, pos_y);
-		Vector2 size = new Vector2( size_x, size_y);
+        Vector4 bounds = new Vector4(pos_x, pos_y, size_x, size_y);
 		
 		if(newTextures.get(layer) == null) {			
 			ArrayList<TextureConstruct>  ar  = new ArrayList<TextureConstruct>();
@@ -300,10 +353,10 @@ public final class MasterRenderer {
 		
 		if(TextureDatas.get(texture) == null) {
 			ArrayList<Vector4>  ar2  = new ArrayList<Vector4>();
-			ar2.add(new Vector4(pos, size));
+            ar2.add(bounds);
 			TextureDatas.put(texture, ar2);
 		} else {
-			TextureDatas.get(texture).add(new Vector4(pos, size));
+            TextureDatas.get(texture).add(bounds);
 		}
 		
 		if(layer+1 > biggestcache)
@@ -312,88 +365,82 @@ public final class MasterRenderer {
 	
 	
 	public void processTexture(Texture texture) {
-		processTexture(texture, new Vector2(texture.getPosition()), new Vector2(texture.getSize()), 0);
+        processTexture(texture, texture.getPosition(), texture.getSize(), 0);
 	}
 	
 	public void processTexture(Texture texture, int layer) {
 		processTexture(texture, texture.getPosition(), texture.getSize(), layer);
 	}
-	
+
+    public void processTexture(Texture texture, Vector2 pos, Vector2 size) {
+        processTexture(texture, pos, size, 0);
+    }
 	public void processTexture(Texture texture, float pos_x, float pos_y) {
-		processTexture(texture, new Vector2(pos_x, pos_y), new Vector2(texture.getSize()), 0);
+        processTexture(texture, new Vector2(pos_x, pos_y), texture.getSize(), 0);
 	}
 	
 	public void processTexture(Texture texture, float pos_x, float pos_y, int layer) {
-		processTexture(texture, new Vector2(pos_x, pos_y), new Vector2(texture.getSize()), layer);
+        processTexture(texture, new Vector2(pos_x, pos_y), texture.getSize(), layer);
 	}
 	
 	public void processTexture(Texture texture, float pos_x, float pos_y, float size_x, float size_y) {
-		processTexture(texture, new Vector2(pos_x, pos_y), new Vector2(size_x, size_y), 0);
+        processTexture(texture, pos_x, pos_y, size_x, size_y, 0);
 	}
-	
 	public void processTexture(Texture texture, float pos_x, float pos_y, float size_x, float size_y, int layer) {
-		processTexture(texture, new Vector2(pos_x, pos_y), new Vector2(size_x, size_y), layer);
-	}
-	
+        Vector4 bounds = new Vector4(pos_x, pos_y, size_x, size_y);
 
-	public void processTexture(Texture texture, Vector2 pos, Vector2 size) {		
-		processTexture(texture, pos, size, 0);
-	}	
-
-	
-	public void processTexture(Texture texture, Vector2 pos, Vector2 size, int layer) {			
-		if(newTextures.get(layer) == null) {			
+        if (newTextures.get(layer) == null) {
 			ArrayList<TextureConstruct>  ar  = new ArrayList<TextureConstruct>();
 			ar.add(texture);
-			newTextures.put(layer, ar);			
-		} else {				
+            newTextures.put(layer, ar);
+        } else {
 			if(!newTextures.get(layer).contains(texture))
-				newTextures.get(layer).add(texture);			
-		}	
+                newTextures.get(layer).add(texture);
+        }
 
 		if(TextureDatas.get(texture) == null) {
 			ArrayList<Vector4>  ar2  = new ArrayList<Vector4>();
-			ar2.add(new Vector4(pos, size));
+            ar2.add(bounds);
 			TextureDatas.put(texture, ar2);
 		} else {
-			TextureDatas.get(texture).add(new Vector4(pos, size));
-		}
-		
-		if(layer+1 > biggestcache)
-			biggestcache = layer+1;
-	}	
-	
-	public void processTextureRegion(TextureRegion region, Vector2 pos, Vector2 size) {				
-		processTextureRegion(region, pos, size, 0);
-	}
-	
-	public void processTextureRegion(TextureRegion region, Vector2 pos, Vector2 size, int layer) {					
-		if(newTextures.get(layer) == null) {			
-			ArrayList<TextureConstruct>  ar  = new ArrayList<TextureConstruct>();
-			ar.add(region);
-			newTextures.put(layer, ar);			
-		} else {				
-			if(!newTextures.get(layer).contains(region))
-				newTextures.get(layer).add(region);			
+            TextureDatas.get(texture).add(bounds);
 		}
 
-		if(TextureDatas.get(region) == null) {
+		if(layer+1 > biggestcache)
+			biggestcache = layer+1;
+    }
+
+    public void processTexture(Texture texture, Vector2 pos, Vector2 size, int layer) {
+		if(newTextures.get(layer) == null) {			
+			ArrayList<TextureConstruct>  ar  = new ArrayList<TextureConstruct>();
+            ar.add(texture);
+			newTextures.put(layer, ar);			
+		} else {
+            if (!newTextures.get(layer).contains(texture))
+                newTextures.get(layer).add(texture);
+        }
+
+        if (TextureDatas.get(texture) == null) {
 			ArrayList<Vector4>  ar2  = new ArrayList<Vector4>();
 			ar2.add(new Vector4(pos, size));
-			TextureDatas.put(region, ar2);
+            TextureDatas.put(texture, ar2);
 		} else {
-			TextureDatas.get(region).add(new Vector4(pos, size));
+            TextureDatas.get(texture).add(new Vector4(pos, size));
 		}
 		
 		if(layer+1 > biggestcache)
 			biggestcache = layer+1;
+    }
+
+    public void processTextureRegion(TextureRegion region, Vector2 pos, Vector2 size) {
+        processTextureRegion(region, (int) pos.getX(), (int) pos.getY(), (int) size.getWidth(), (int) size.getHeight(), 0);
+    }
+
+    public void processTextureRegion(TextureRegion region, int pos_x, int pos_y, int size_x, int size_height, int layer) {
+        process(region, pos_x, pos_y, size_x, size_height, layer);
 	}
-	
-	public void processFontChar(Texture region, Vector2 pos, Vector2 size, int layer) {				
-		processTexture(region, pos, size, layer);
-	}
-	
-	public Vector3 getBackgroundColor() {
+
+    public Vector3 getBackgroundColor() {
 		return backgroundColor;
 	}
 

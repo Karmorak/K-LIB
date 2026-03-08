@@ -27,9 +27,9 @@ import com.karmorak.lib.math.Vector2i;
 import com.karmorak.lib.math.Vector3;
 
 public class TextureShader extends ShaderProgramm {
-	
-	private static final String VERTEX_FILE = "/shaders/shader_src/TextureVertexShader.glsl";
-	private static final String FRAGMENT_FILE =  "/shaders/shader_src/TextureFragmentShader.glsl";
+
+    private static final String VERTEX_FILE = "/shaders/shader_src/TextureVertexShaderNew.glsl";
+    private static final String FRAGMENT_FILE = "/shaders/shader_src/TextureFragmentShaderNew.glsl";
 	
 	
 	public TextureShader() {
@@ -83,70 +83,33 @@ public class TextureShader extends ShaderProgramm {
 		glDeleteShader(fragmentID);		
 		created = true;
 	}
-	
-	public void loadTransformationMatrix(Matrix4 matrix) {
-		this.setUniform(MODEL_MATRIX, matrix);
-	}
-	
-	
-	public void loadTransformationMatrix(Vector2 position, Vector2 scale, boolean advanced) {
-		if (advanced) {
-			this.setUniform(TRANSLATION_MATRIX, Matrix4.translate(new Vector3(position.getX(), position.getY(), 0)));
-			this.setUniform(SCALE_MATRIX, Matrix4.scale(new Vector3(scale.getX(), scale.getY(), 0)));
-		} else {
-			//this.setUniform(MODEL_MATRIX, Matrix4.transform(position, rotation, scale));
-		}
-	}	
-		
-	@Deprecated
-	public void loadTransformationMatrix(Vector2 position, Vector2 scale, Vector3 rotation, boolean advanced) {
-		if (advanced) {
-			this.setUniform(TRANSLATION_MATRIX, Matrix4.translate(new Vector3(position.getX(), position.getY(), 0)));
-			this.setUniform(SCALE_MATRIX, Matrix4.scale(new Vector3(scale.getX(), scale.getY(), 0)));
-			this.setUniform(ROTATION_MATRIX+ "x", Matrix4.rotate(rotation.getX(), new Vector3(1, 0, 0)));
-			this.setUniform(ROTATION_MATRIX+ "y", Matrix4.rotate(rotation.getY(), new Vector3(0, 1, 0)));
-			this.setUniform(ROTATION_MATRIX+ "z", Matrix4.rotate(rotation.getZ(), new Vector3(0, 0, 1)));
-			this.setUniform("flipY", 1);
-			this.setUniform("flipX", 1);
-		} else 
-			//this.setUniform(MODEL_MATRIX, Matrix4.transform(position, rotation, scale))
-			;
 
-	}	
-	
-	public void loadTransformationMatrix(Vector2 position, Vector2 scale, Vector3 rotation, boolean flipX, boolean flipY) {
-		this.setUniform(TRANSLATION_MATRIX, Matrix4.translate(new Vector3(position.getX(), position.getY(), 0)));
-		this.setUniform(SCALE_MATRIX, Matrix4.scale(new Vector3(scale.getX(), scale.getY(), 0)));
-		this.setUniform(ROTATION_MATRIX+ "x", Matrix4.rotate(rotation.getX(), new Vector3(1, 0, 0)));
-		this.setUniform(ROTATION_MATRIX+ "y", Matrix4.rotate(rotation.getY(), new Vector3(0, 1, 0)));
-		this.setUniform(ROTATION_MATRIX+ "z", Matrix4.rotate(rotation.getZ(), new Vector3(0, 0, 1)));
-		this.setUniform("flipX", flipX ? -1 : 1);
-		this.setUniform("flipY",  flipY ? -1 : 1);		
+    // In deiner Shader-Klasse
+    public void loadTransformation(int x, int y, int width, int height, float rotZ, float scale, boolean flipX, boolean flipY) {
+        this.setUniform("pixelPosition", new Vector2(x, y));
+        this.setUniform("pixelSize", new Vector2(width * scale, height * scale));
+
+        // In 2D reicht meistens die Rotation um die Z-Achse (im Bogenmaß/Radians)
+        this.setUniform("rotationZ", (float) Math.toRadians(rotZ));
+
+        // Flip-Logik als einfache Integers (0 oder 1)
+        this.setUniform("flipX", flipX ? -1 : 0);
+        this.setUniform("flipY", flipY ? -1 : 0);
+    }
+
+    // WICHTIG: Einmal pro Frame (oder bei Window-Resize) aufrufen!
+    public void loadProjectionMatrix(int windowWidth, int windowHeight) {
+        // left=0, right=w, bottom=0, top=h
+        Matrix4 projection = Matrix4.orthographic(0, windowWidth, 0, windowHeight, -1, 10);
+
+        this.setUniform("projectionMatrix", projection);
 	}
 
-	public void loadTransformationMatrix(int pos_x, int pos_y, int width, int height, Vector3 rotation, boolean flipX, boolean flipY) {
-		this.setUniform(TRANSLATION_MATRIX, Matrix4.translate(new Vector3(pos_x, pos_y, 0)));
-		this.setUniform(SCALE_MATRIX, Matrix4.scale(new Vector3(width, height, 0)));
-		this.setUniform(ROTATION_MATRIX+ "x", Matrix4.rotate(rotation.getX(), new Vector3(1, 0, 0)));
-		this.setUniform(ROTATION_MATRIX+ "y", Matrix4.rotate(rotation.getY(), new Vector3(0, 1, 0)));
-		this.setUniform(ROTATION_MATRIX+ "z", Matrix4.rotate(rotation.getZ(), new Vector3(0, 0, 1)));
-		this.setUniform("flipX", flipX ? -1 : 1);
-		this.setUniform("flipY",  flipY ? -1 : 1);
-	}
-	
-	public void loadTransformationMatrix(Vector2i position, Vector2i scale, Vector3 rotation, boolean flipX, boolean flipY) {
-		this.setUniform(TRANSLATION_MATRIX, Matrix4.translate(new Vector3(position.getX(), position.getY(), 0)));
-		this.setUniform(SCALE_MATRIX, Matrix4.scale(new Vector3(scale.getX(), scale.getY(), 0)));
-		this.setUniform(ROTATION_MATRIX+ "x", Matrix4.rotate(rotation.getX(), new Vector3(1, 0, 0)));
-		this.setUniform(ROTATION_MATRIX+ "y", Matrix4.rotate(rotation.getY(), new Vector3(0, 1, 0)));
-		this.setUniform(ROTATION_MATRIX+ "z", Matrix4.rotate(rotation.getZ(), new Vector3(0, 0, 1)));
-		this.setUniform("flipX", flipX ? -1 : 1);
-		this.setUniform("flipY",  flipY ? -1 : 1);		
-	}
 	
 	public void load2DColor(Color color,float intensity) {
-		this.setUniform("u_color", color.Vec4());
+        this.setUniform("u_color", color.Vec4f());
 		this.setUniform("u_color_intensity",  intensity);		
 	}
+
 
 }

@@ -202,7 +202,7 @@ v. 0.9.2 r29 (27.01.2026)
     - added MonitorNative to get monitor HardwareInfo
 v.0.9.2.1
     - removed monitors[] list in Window cause its unused and should be replaced by a better solution
-v. 1.0.0
+v. 1.0.0 r30 (25.02.2026)
     - update to Java 25.0.2 & lwjgl 3.4.0
     - Text and Button can now use special chars called with §§identifier
          - for this there was a huge rewrite needed of Font, OwnChar & Text
@@ -225,4 +225,35 @@ v. 1.0.0
  v. 1.0.1
     - hopefully more improvements to reduce the HeapCorruption crashes that currently happening
     - einführung des GLTaskQueue
-
+ v. 1.1.0 r31 (08.03.2026)
+    - optimised close in method
+    - Input now returns horizontal scroll values
+    - 4 new chars for the standard font + 2 fixes
+    - added KLIB.input for easy access to input settings
+    - newTextureVertexShader now calculates the translated position by itself
+        - removed translated positions out of all TextureConstructs and others
+    - theres no need of creating a MasterRenderer it gets automatically created in Running
+        - a custom MasterRenderer can still be set via new KLIB.START Constructor
+        - or just enable it via before KLIB.START via Running.use_GlobalRenderer
+    - GSM superseded by StateManager
+        - StateManager now calls dispose to all GameStates that got initialized
+        - it also doesn't need to be created by hand;
+        - every method can be accessed in a static way and the rest
+        - GameState has a new default method called changeState it gets called,
+                on the current loaded State before switching to the new one
+        - renamed changestate to changeState old ones got marked as Deprecated
+        - GameState.init() now needs ro return a boolean currently to execute init
+            again as long as it doesn't return true (for loadingscreens and other)
+        - StateManager.draw() now doesn't call init() only update if draw() is called
+            but the state is not initialized draw doesn't get executed now
+        - init() now also return a boolean whether the state is finished or not
+        - update and draw can now get skipped
+    - added new FileUtils Methods
+        - .selectFolder()
+        - .selectFiles(String[] filters)
+        - .selectFileLimited(int limit, bool smaller, bool larger)
+        - .isImageType()
+    - TextureConstructs should now be able to load many more file formats
+    - Texture now can use Strings as Path (they have to be outside a jar)
+    - MasterRenderer.process got new variants and works now as it should
+    - new TextureFragment Shader now handles the overlay colors properly

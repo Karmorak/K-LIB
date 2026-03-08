@@ -4,20 +4,24 @@ import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
 import com.karmorak.lib.engine.graphic.MasterRenderer;
 
 public interface GameState {
-	
-	public abstract void init();
-	public abstract void update(float deltaTime);
-	public abstract void draw(MasterRenderer renderer);
-//	public abstract void draw(SpriteBatch batch);
 
-	public abstract void pause();
-	public abstract void resume();
-	public abstract void resize(int width, int height);
-	public abstract void dispose();
-	
-//	public default void draw(SpriteBatch batch, SpriteCache cache) {
-//		
-//	}
+	boolean init();
+
+	void update(double deltaTime);
+
+	void draw(MasterRenderer renderer);
+
+	void pause();
+
+	void resume();
+
+	void resize(int width, int height);
+
+	default void changeState(short state_change_to) {
+	}
+
+	void dispose();
+
 	@Deprecated
 	public default void keyDown(int glfw_key, char c) {
 	}
@@ -33,20 +37,32 @@ public interface GameState {
 	}
 	public default void mouseMoved(int screenX, int screenY) {
 	}
+
+	@Deprecated
 	public default void scrolled(double amount) {
+	}
+
+	public default void scrolled(double amount_X, double amount_Y) {
 	}
 	public default void tap(float x, float y, int count, int button) {
 	}
-	@Deprecated
 	public default void keyUp(int glfw_key, char character) {
 	}
 	public default void keyUp(int glfw_key) {		
 	}
-	
+
+	@Deprecated
 	public default void globalkeyDown(NativeKeyEvent e) {
 	}
-	
+
+	@Deprecated
 	public default void globalkeyUp(NativeKeyEvent e) {		
+	}
+
+	public default void globalKeyDown(NativeKeyEvent e) {
+	}
+
+	public default void globalKeyUp(NativeKeyEvent e) {
 	}
 	
 

@@ -254,7 +254,6 @@ public class GraphicUtils {
 
 		img.flush();
 		buf2.rewind();
-	
 	}
 	
 	static int offset(int x, int y, int w, int channels) {

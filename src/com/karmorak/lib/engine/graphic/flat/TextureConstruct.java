@@ -15,11 +15,16 @@ import static org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE;
 import static org.lwjgl.opengl.GL30.glGenerateMipmap;
 import static org.lwjgl.opengl.GL46.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.IntBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 
 import com.karmorak.lib.Colorable;
 import com.karmorak.lib.engine.io.images.ImageLoader;
@@ -31,6 +36,8 @@ import com.karmorak.lib.math.Vector2;
 import com.karmorak.lib.math.Vector3;
 import com.karmorak.lib.math.Vector4;
 import com.karmorak.lib.utils.PNGDecoder;
+import org.lwjgl.stb.STBImage;
+import org.lwjgl.system.MemoryStack;
 
 public abstract class TextureConstruct {
 		
@@ -41,11 +48,9 @@ public abstract class TextureConstruct {
 	protected Vector3 rotation;
 	protected boolean flipX;
 	protected boolean flipY;
-	protected Colorable overlayColor;
-	protected float overlayColorIntensity;
-	
-	protected final Vector4 translBounds = new Vector4();
-	
+	public Colorable overlayColor;
+	public float overlayColorIntensity;
+
 	protected int min_filter = -1;
 	protected int mag_filter = -1;
 	
@@ -67,8 +72,16 @@ public abstract class TextureConstruct {
 
 
 	public static TextureData loadURL(URL path) {
-		return loadURL(path, default_min_filter, default_mag_filter);
+//		return loadURL(path, default_min_filter, default_mag_filter);
+		return loadURLNew(path, default_min_filter, default_mag_filter);
 	}
+
+	public static TextureData loadURL(String path) {
+//		return loadURL(path, default_min_filter, default_mag_filter);
+		return loadURLNew(path, default_min_filter, default_mag_filter);
+	}
+
+
 
 	public static TextureData loadURL(URL path, int min_filter, int mag_filter) {
 
@@ -98,6 +111,94 @@ public abstract class TextureConstruct {
 			return new TextureData(ID, width, height, path, 4);
 		} catch (IOException | NullPointerException _) {
 			System.err.println(">" + path  + "< failed to load texture from URL.");
+			return null;
+		}
+	}
+
+	static ByteBuffer urlToByteBuffer(URL url) throws IOException {
+		ByteBuffer buffer;
+
+		try (InputStream is = url.openStream(); ReadableByteChannel rbc = Channels.newChannel(is)) {
+			buffer = BufferUtils.createByteBuffer(128 * 1024);
+			while (true) {
+				int bytes = rbc.read(buffer);
+				if (bytes == -1) break;
+				if (buffer.remaining() == 0) {
+					ByteBuffer newBuffer = BufferUtils.createByteBuffer(buffer.capacity() * 2);
+					buffer.flip();
+					newBuffer.put(buffer);
+					buffer = newBuffer;
+				}
+			}
+		}
+		buffer.flip();
+		return buffer;
+	}
+
+	public static TextureData loadURLNew(String path, int min_filter, int mag_filter) {
+
+		ByteBuffer buffer;
+		int width = -1, height = -1;
+
+		try (MemoryStack stack = MemoryStack.stackPush()) {
+			IntBuffer w = stack.mallocInt(1);
+			IntBuffer h = stack.mallocInt(1);
+			IntBuffer channels = stack.mallocInt(1);
+
+//			STBImage.stbi_set_flip_vertically_on_load(true);
+			buffer = STBImage.stbi_load(path, w, h, channels, 4); // 4 = RGBA
+
+			if (buffer == null) {
+				throw new RuntimeException("Failed to load texture from URL: " + path + " " + STBImage.stbi_failure_reason());
+			}
+
+			width = w.get();
+			height = h.get();
+
+			int ID = generateTextureID();
+			bindTexture(ID, width, height, buffer, min_filter, mag_filter);
+			STBImage.stbi_image_free(buffer);
+			return new TextureData(ID, width, height, convertToURL(path), 4);
+		}
+	}
+
+	public static URL convertToURL(String absolutePath) {
+		try {
+			return new File(absolutePath).toURI().toURL();
+		} catch (Exception e) {
+			System.out.println("DrawMap > cant cast String to URL");
+		}
+		return null;
+	}
+
+	public static TextureData loadURLNew(URL path, int min_filter, int mag_filter) {
+		try {
+			ByteBuffer imageBuffer = urlToByteBuffer(path);
+			int width = -1, height = -1;
+			ByteBuffer data;
+
+			try (MemoryStack stack = MemoryStack.stackPush()) {
+				IntBuffer w = stack.mallocInt(1);
+				IntBuffer h = stack.mallocInt(1);
+				IntBuffer channels = stack.mallocInt(1);
+
+//				STBImage.stbi_set_flip_vertically_on_load(true);
+				data = STBImage.stbi_load_from_memory(imageBuffer, w, h, channels, 4); // 4 = RGBA
+
+				if (data == null) {
+					throw new RuntimeException("Failed to load texture from URL: " + path + " " + STBImage.stbi_failure_reason());
+				}
+
+				width = w.get();
+				height = h.get();
+
+				int ID = generateTextureID();
+				bindTexture(ID, width, height, data, min_filter, mag_filter);
+				STBImage.stbi_image_free(data);
+				return new TextureData(ID, width, height, path, 4);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
 			return null;
 		}
 	}
@@ -209,73 +310,6 @@ public abstract class TextureConstruct {
 	
 	public abstract void destroy();
 
-	protected Vector4 translate(Vector4 bounds) {
-		return translate(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
-	}
-
-	protected Vector4 translate(float x, float y, float width, float height) {
-
-		float tWidth = width * scale;
-		float tHeight = height * scale;
-
-		float sWidth =  KLIB.graphic.Width() ;
-		float sHeight =  KLIB.graphic.Height();
-
-		float widtha = tWidth/ sWidth;
-		float heighta = tHeight/sHeight;
-
-		float xa = (tWidth + 2*x) / sWidth - 1;
-		float ya = (tHeight + 2*y) / sHeight - 1;
-
-		return new Vector4(xa, ya, widtha, heighta);
-	}
-
-	protected Vector2 translatePosition(Vector4 bounds) {
-		return translatePosition(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
-	}
-	
-	public Vector2 translatePosition() {
-		return translatePosition(pos.getX(), pos.getY(), size.getWidth(),  size.getHeight());
-	}
-	
-	protected Vector2 translatePosition(float x, float y, Vector2 bounds) {	
-		return translatePosition(x, y, bounds.getWidth(), bounds.getHeight());
-	}
-	
-	protected Vector2 translatePosition(float x, float y, float width, float height) {
-		
-		float tWidth = width * scale;
-		float tHeight = height * scale;
-
-		float sWidth =  KLIB.graphic.Width() ;	
-		float sHeight =  KLIB.graphic.Height();	
-		float xa = (tWidth + 2*x) / sWidth - 1;
-		float ya = (tHeight + 2*y) / sHeight - 1;
-//		float xa = x / sWidth + tWdith / sWidth - (1 - x / sWidth);
-//		float ya = y / sHeight + tHeight / sHeight - (1 - y / sHeight);	
-		
-		
-		return new Vector2(xa, ya);
-	}
-
-	protected Vector2 translateBounds() {
-		return translateBounds(size.getWidth(), size.getHeight());
-	}
-	
-	protected Vector2 translateBounds(float width, float height) {
-		float tWdith = width * scale;
-		float tHeight = height * scale;
-
-		float sWidth =  KLIB.graphic.Width() ;	
-		float sHeight =  KLIB.graphic.Height();		
-		
-		float widtha = tWdith/ sWidth;
-		float heighta = tHeight/sHeight;			
-		
-		return new Vector2(widtha, heighta);
-	}
-
-	
 	public Vector2 getPosition() {		
 		return pos;		
 	}
@@ -290,12 +324,10 @@ public abstract class TextureConstruct {
 	
 	public void setPosition(Vector2 pos) {
 		this.pos = new Vector2(pos.getX(), pos.getY());
-		translBounds.setPosition(translatePosition());
 	}
 	
 	public void setPosition(float x, float y) {
 		this.pos = new Vector2(x, y);
-		translBounds.setPosition(translatePosition());
 	}
 	
 	public void setX(float x) {
@@ -305,41 +337,33 @@ public abstract class TextureConstruct {
 	public void setY(float y) {
 		setPosition(getPosition().getX(), y);
 	}
-	
+
+	public Vector2 getSourceSize() {
+		return new Vector2(getSourceWidth(), getSourceHeight());
+	}
+
 	public Vector2 getSize() {
 		return size;
 	}
 	
-	
 	public void setWidth(float width) {
 		this.size.setWidth(width);
-		translBounds.setSize(translateBounds());
-		translBounds.setPosition(translatePosition());
 	}
 	
 	public void setHeight(float height) {
 		this.size.setHeight(height);
-		translBounds.setSize(translateBounds());
-		translBounds.setPosition(translatePosition());
 	}
 	
 	public void setSize(Vector2 size) {
 		this.size = new Vector2(size.getWidth(), size.getHeight());
-		translBounds.setSize(translateBounds());
-		translBounds.setPosition(translatePosition());
 	}
-	
-	
+
 	public void setSize(float width, float height) {
 		this.size = new Vector2(width, height);
-		translBounds.setSize(translateBounds());
-		translBounds.setPosition(translatePosition());
 	}
 	
 	public void setScale(float scale) {
 		this.scale = scale;
-		translBounds.setSize(translateBounds());
-		translBounds.setPosition(translatePosition());
 	}
 		
 	public float getScale() {
@@ -349,6 +373,10 @@ public abstract class TextureConstruct {
 	public float getWidth() {
 		return size.getWidth() * getScale();
 	}
+
+	public int getWidthUnscaled() {
+		return (int) size.getWidth();
+	}
 	
 	public int getSourceWidth() {
 		return getData().WIDTH;
@@ -356,6 +384,10 @@ public abstract class TextureConstruct {
 	
 	public float getHeight() {
 		return size.getHeight() * getScale();
+	}
+
+	public int getHeightUnscaled() {
+		return (int) size.getHeight();
 	}
 	
 	public int getSourceHeight() {
@@ -428,16 +460,17 @@ public abstract class TextureConstruct {
 	public boolean isFlipY() {
 		return flipY;
 	}
-	
-	public void setColor(Color c) {
+
+	public TextureConstruct setColor(Colorable c) {
 		overlayColor = c;
+		return this;
 	}
 	
 	public void setColorintensity(float intensity) {
 		overlayColorIntensity = intensity;
 	}
-	
-	public void setColor(Color c, float intensity) {
+
+	public void setColor(Colorable c, float intensity) {
 		overlayColor = c;
 		overlayColorIntensity = intensity;
 	}

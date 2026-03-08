@@ -107,8 +107,23 @@ public class Matrix4 {
 		
 		return result;		
 	}
-	
-	
+
+    public static Matrix4 orthographic(float left, float right, float bottom, float top, float near, float far) {
+        Matrix4 result = new Matrix4(); // Erstellt eine Null-Matrix
+
+        // Diagonale (Skalierung)
+        result.set(0, 0, 2.0f / (right - left));
+        result.set(1, 1, 2.0f / (top - bottom));
+        result.set(2, 2, -2.0f / (far - near));
+        result.set(3, 3, 1.0f);
+
+        // Letzte ZEILE (Translation in deiner Row-Major Logik)
+        result.set(3, 0, -(right + left) / (right - left));
+        result.set(3, 1, -(top + bottom) / (top - bottom));
+        result.set(3, 2, -(far + near) / (far - near));
+
+        return result;
+    }
 	
 	public static Matrix4 transform(Vector3 position, Vector3 rotation, Vector3 scale) {
 		Matrix4 result = identify();

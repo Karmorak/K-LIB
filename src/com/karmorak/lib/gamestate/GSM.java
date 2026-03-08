@@ -2,10 +2,13 @@
 package com.karmorak.lib.gamestate;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
 import com.karmorak.lib.engine.graphic.MasterRenderer;
+import com.karmorak.lib.engine.graphic.flat.Texture;
 
+@Deprecated
 public abstract class GSM {
 	
 	private static final boolean[] inits = new boolean[64];	
@@ -28,10 +31,10 @@ public abstract class GSM {
 				states.get(currentstate).init();
 				inits[currentstate] = true;
 			} else {
-				System.out.println("Couldnt init \"" + display_names[currentstate] + "\"(" + currentstate + "). its null");
+                System.out.println("Couldn't init \"" + display_names[currentstate] + "\"(" + currentstate + "). its null");
 			}
 		} else {
-			System.out.println("Couldnt init (" + currentstate + "). its null");
+            System.out.println("Couldn't init (" + currentstate + "). its null");
 		}
 		return currentstate;		
 	}
@@ -91,27 +94,49 @@ public abstract class GSM {
 			states.get(currentstate).resize(width, height);
 		return currentstate;		
 	}
-	
-	public static int destroy() {		
+
+    public static int destroy() {
 		if(!states.isEmpty()) {
 			states.get(currentstate).dispose();
-			inits[currentstate] = true;		
+            inits[currentstate] = false;
+
+            for (int i = 0; i < states.size(); i++) {
+                if (states.get(i) != null && inits[i]) {
+                    states.get(i).dispose();
+                    inits[i] = false;
+                }
+            }
 		}
 		return currentstate;		
 	}
-	
-	
+
+    @Deprecated
+    /** replaced by changeState */
 	public static void changestate(short state) {
+        if (inits[currentstate])
+            states.get(currentstate).changeState(state);
 		currentstate = state;
 		if(!inits[state])
-			init(state);		
+            init(state);
 	}
-	
-	public static void changestate(int state) {		
-		currentstate = (short) state;
+
+    @Deprecated
+    /** replaced by changeState */
+    public static void changestate(int state) {
+        changestate((short) state);
+    }
+
+    public static void changeState(short state) {
+        if (inits[currentstate])
+            states.get(currentstate).changeState(state);
+        currentstate = state;
 		if(!inits[state])
-				init(state);		
+            init(state);
 	}
+
+    public static void changeState(int state) {
+        changestate((short) state);
+    }
 	
 	public static int getStateInt() {
 		return currentstate;
@@ -156,6 +181,12 @@ public abstract class GSM {
 			states.get(currentstate).scrolled(amount);
 		return currentstate;	
 	}
+
+    public static short scrolled(double amount_X, double amount_Y) {
+        if (!states.isEmpty())
+            states.get(currentstate).scrolled(amount_X, amount_Y);
+        return currentstate;
+    }
 
 	public static short keyDown(int glfw_key, int action, int modifier) {
 		if(!states.isEmpty())

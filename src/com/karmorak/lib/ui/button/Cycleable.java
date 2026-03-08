@@ -93,6 +93,14 @@ public class Cycleable extends Button implements Button_onTouchDown_Event {
         return cur_cycle;
     }
 
+    public int getCurrentCycle() {
+        return cur_cycle;
+    }
+
+    public String getCycleName() {
+        return cycleLabel.getName();
+    }
+
     @Override
     public Vector2 getPosition() {
         return prev.getPosition();
@@ -100,7 +108,7 @@ public class Cycleable extends Button implements Button_onTouchDown_Event {
 
     @Override
     public Button setPosition(float x, float y) {
-        if(option_total_position) {
+        if (!option_total_position) {
             cycleLabel.setPosition(x, y);
         } else {
             text.setPosition(x + title_pos.getX(), y + title_pos.getY());
@@ -130,6 +138,16 @@ public class Cycleable extends Button implements Button_onTouchDown_Event {
         cycleLabel.setName(cycles[cur_cycle]);
         if(!option_total_position)
             setPosition(getPosition());
+    }
+
+    @Override
+    public Button setHeight(float height) {
+        cycleLabel.setHeight(height);
+        text.setScale(cycleLabel.getScale());
+        for (Hang h : hangs) {
+            if (h != cycleLabel) h.setScale(getScale());
+        }
+        return this;
     }
 
     @Override

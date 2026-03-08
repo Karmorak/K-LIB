@@ -2,6 +2,7 @@ package com.karmorak.lib;
 
 import com.karmorak.lib.math.Vector3;
 import com.karmorak.lib.math.Vector4;
+import com.karmorak.lib.math.Vector4i;
 
 @SuppressWarnings("unused")
 public class Color implements Colorable {
@@ -243,13 +244,16 @@ public class Color implements Colorable {
 		return (A << 24) + (B << 16) + (G << 8) + R; //RGBA
 	}
 
-    public Vector3 Vec3() {
-		return new Vector3(R, G, B);
+    public Vector3 Vec3f() {
+        return new Vector3(R / 255f, G / 255f, B / 255f);
 	}
-	
-	
-	public Vector4 Vec4() {
-		return new Vector4(R, G, B, A);
+
+    public Vector4 Vec4f() {
+        return new Vector4(R / 255f, G / 255f, B / 255f, A / 255f);
+    }
+
+    public Vector4i Vec4i() {
+        return new Vector4i(R, G, B, A);
 	}
 	
 	/**relikt aus libGDX*/
@@ -367,6 +371,8 @@ public class Color implements Colorable {
         return R == other.R;
     }
 
-
-
+    @Override
+    public String toString() {
+        return "R" + R + ", G" + G + ", B" + B + ", A" + A;
+    }
 }

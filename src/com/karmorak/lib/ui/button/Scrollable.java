@@ -142,12 +142,12 @@ public class Scrollable extends Button {
 	@Override
 	public void draw(MasterRenderer renderer, int layer) {		
 		if(show) {
-			renderer.processTexture(bg_up, layer);
-			renderer.processTexture(bg_middle, layer);
-			renderer.processTexture(bg_down, layer);
-			renderer.processTexture(slider_up, layer);
-			renderer.processTexture(slider_middle, layer);
-			renderer.processTexture(slider_down, layer);
+			renderer.process(bg_up, layer);
+			renderer.process(bg_middle, layer);
+			renderer.process(bg_down, layer);
+			renderer.process(slider_up, layer);
+			renderer.process(slider_middle, layer);
+			renderer.process(slider_down, layer);
 		}
 		super.draw(renderer, layer+1);
 	}
@@ -270,9 +270,55 @@ public class Scrollable extends Button {
 		return background_bounds.getHeight();
 	}
 
+	public void setSize(float length, float thickness) {
+		if (IS_VERTICAL) {
+			background_bounds.setSize(thickness, length);
+			slider_bounds_2.setSize((int) thickness, length * slider_size);
+			texture_scale = (float) background_bounds.getWidth() / bg_middle.getSourceWidth();
+		} else {
+			background_bounds.setSize(length, thickness);
+			slider_bounds_2.setSize(length * slider_size, thickness);
+			texture_scale = (float) background_bounds.getHeight() / bg_middle.getSourceHeight();
+		}
+		updateBackgroundSize();
+		updateScale();
+		updateBackgroundPosition();
+	}
+
+	public void setThickness(float thickness) {
+		if (IS_VERTICAL) {
+			background_bounds.setWidth((int) thickness);
+			slider_bounds_2.setWidth((int) thickness);
+			texture_scale = (float) background_bounds.getWidth() / bg_middle.getSourceWidth();
+		} else {
+			background_bounds.setHeight((int) thickness);
+			slider_bounds_2.setHeight((int) thickness);
+			texture_scale = (float) background_bounds.getHeight() / bg_middle.getSourceHeight();
+
+		}
+		updateBackgroundSize();
+		updateScale();
+		updateBackgroundPosition();
+	}
+
+	public void setLength(float length) {
+		if (IS_VERTICAL) {
+			background_bounds.setHeight((int) length);
+			slider_bounds_2.setHeight((int) (length * slider_size));
+//			texture_scale = background_bounds.getWidth() / map.getWidth();
+
+		} else {
+			background_bounds.setWidth((int) length);
+			slider_bounds_2.setWidth((int) (length * slider_size));
+//			texture_scale = background_bounds.getHeight() / map.getHeight();
+		}
+		updateBackgroundSize();
+		updateScale();
+		updateBackgroundPosition();
+	}
 
 
-	private void updateSliderPosition() {
+	public void updateSliderPosition() {
 		if(IS_VERTICAL) {
 			int slider_y = (int) (background_bounds.getHeight() * (1f-slider_size) * value);
 			slider_bounds_2.setPosition(getX(), getY() - slider_y);
@@ -324,7 +370,6 @@ public class Scrollable extends Button {
 	}
 
 	private void updateBackgroundSize() {
-
 
 		if(IS_VERTICAL) {
 			bg_up.setPosition(getX(), getY());
@@ -397,8 +442,8 @@ public class Scrollable extends Button {
 
 	@Deprecated
 	public void setSliderSize(float x_bound, float y_bound) {
-//		slider_bounds.setSize((int)x_bound,(int) y_bound);
-//		updateSlider();
+		float length = y_bound / background_bounds.getHeight();
+		setSliderSize(length);
 	}
 
 	float getSliderWidth() {
@@ -543,6 +588,15 @@ public class Scrollable extends Button {
 		lastX = 0;
 		lastY = 0;
 	}
-	
 
+	@Override
+	public void dispose() {
+		super.dispose();
+		bg_up.destroy();
+		bg_middle.destroy();
+		bg_down.destroy();
+		slider_up.destroy();
+		slider_middle.destroy();
+		slider_down.destroy();
+	}
 }

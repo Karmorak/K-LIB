@@ -161,7 +161,7 @@ public class Diagramm {
 			
 			Button vertical = new Button("" + (int)val);
 			vertical.setHeight(font_size);
-			vertical.setPosition(pos.getX() - vertical.getWidth() -15, pos.getY() + (int) (i/vertical_values.length  * y_height - font_size*0.5f));
+            vertical.setPosition(pos.getX() - vertical.getWidth() - 15, pos.getY() + (int) ((float) i / vertical_values.length * y_height - font_size * 0.5f));
 			
 			vertical_b.add(vertical);				
 		}

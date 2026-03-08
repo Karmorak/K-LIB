@@ -114,7 +114,7 @@ public class OwnFont {
 			BufferedReader br = new BufferedReader(new InputStreamReader(f.openStream()));
 
 			while ((line = br.readLine()) != null) {
-				if(line.startsWith("name")) {
+				if (line.startsWith("name") || line.startsWith("Name")) {
 					name = line.split(":")[1];
 				} else if (line.startsWith("opt_spacing")) {
                     char_spacing = Integer.parseInt(line.split(":")[1]);
@@ -219,8 +219,8 @@ public class OwnFont {
 			int ay = (int) info[1];
 			if (ay < 0) ay = 0;
 
-			if (bounds.getHeight() * info[0] + ay > y)
-				y = (int) (bounds.getHeight() * info[0] + ay);
+			if ((bounds.getHeight() + ay) * info[0] > y)
+				y = (int) ((bounds.getHeight() + ay) * info[0]);
 		}
 		return y;
 	}

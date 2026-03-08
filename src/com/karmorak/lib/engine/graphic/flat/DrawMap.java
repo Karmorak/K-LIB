@@ -20,11 +20,15 @@ import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
 import static org.lwjgl.opengl.GL30.glBindVertexArray;
 import static org.lwjgl.opengl.GL46.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.IntBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,11 +39,14 @@ import com.karmorak.lib.Colorable;
 import com.karmorak.lib.engine.graphic.GLTaskQueue;
 import com.karmorak.lib.engine.graphic.Renderable;
 import com.karmorak.lib.math.*;
+import com.karmorak.lib.utils.file.FileUtils;
 import org.lwjgl.BufferUtils;
 import com.karmorak.lib.Color;
 import com.karmorak.lib.KLIB;
 import com.karmorak.lib.engine.io.images.ImageLoader;
 import com.karmorak.lib.utils.PNGDecoder;
+import org.lwjgl.stb.STBImage;
+import org.lwjgl.system.MemoryStack;
 
 @SuppressWarnings("ConstantValue")
 public class DrawMap extends TextureConstruct implements Renderable {
@@ -67,7 +74,6 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		scale = 1f;
 		pos = new Vector2(100, 100);
 		size = new Vector2(src_width, src_height);
-		translBounds.set(translatePosition(), translateBounds());
 		rotation = Vector3.EMPTY;
 		this.overlayColor = ColorPreset.WHITE;
 		this.overlayColorIntensity = 1f;
@@ -88,14 +94,36 @@ public class DrawMap extends TextureConstruct implements Renderable {
 	}
 	
 	public DrawMap(URL path) {
-		initPixels(path);		
-		init();	
+        loadDrawMapURLNew(path, default_min_filter, default_mag_filter);
+        init();
+    }
+
+    public DrawMap(String path) {
+        loadDrawMapURLNew(path, default_min_filter, default_mag_filter);
+        init();
+    }
+
+    public DrawMap set(String path) {
+        loadDrawMapURLNew(path, default_min_filter, default_mag_filter);
+        init();
+        return this;
 	}
 
 	public DrawMap set(URL path) {
-		initPixels(path);
+        loadDrawMapURLNew(path, default_min_filter, default_mag_filter);
+        init();
+        return this;
+    }
+
+
+    public DrawMap set(int width, int height, Colorable color) {
+        pixels = new int[width * height];
+        buffer_cache.clear();
+        fill(color);
+        src_width = width;
+        src_height = height;
+
 		buffer_changed = true;
-		init();
 		return this;
 	}
 
@@ -193,15 +221,13 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		init();
 	}
 	
-	public DrawMap(Texture t) {		
-		initPixels(t.DATA.getPATH());
-		
+	public DrawMap(Texture t) {
+        loadDrawMapURLNew(t.getPATH(), default_min_filter, default_mag_filter);
 		init();		
 	}
 
 	void initPixels(URL path) throws NullPointerException {
 		int width = -1, height = -1;
-
 
 		try (InputStream stream = path.openStream()) {
 			if (!path.toString().toLowerCase().contains(".png")) {
@@ -240,6 +266,68 @@ public class DrawMap extends TextureConstruct implements Renderable {
 			initData(width, height, path, DEFAULT_BPP);
 		}
 	}
+
+    public void loadDrawMapURLNew(String path, int min_filter, int mag_filter) {
+
+        int width = -1, height = -1;
+
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            IntBuffer w = stack.mallocInt(1);
+            IntBuffer h = stack.mallocInt(1);
+            IntBuffer channels = stack.mallocInt(1);
+
+            STBImage.stbi_set_flip_vertically_on_load(false);
+            buffer_cache = STBImage.stbi_load(path, w, h, channels, 4); // 4 = RGBA
+
+            if (buffer_cache == null) {
+                throw new RuntimeException("Failed to load texture from URL: " + path + " " + STBImage.stbi_failure_reason());
+            }
+
+            width = w.get();
+            height = h.get();
+
+            this.pixels = ImageLoader.ByteBufferToIntArray2(buffer_cache);
+
+            this.buffer_changed = false;
+            this.buffer_created = false;
+
+            initData(width, height, convertToURL(path), DEFAULT_BPP);
+            STBImage.stbi_image_free(buffer_cache);
+        }
+    }
+
+    public void loadDrawMapURLNew(URL path, int min_filter, int mag_filter) {
+        try {
+            ByteBuffer imageBuffer = urlToByteBuffer(path);
+            int width = -1, height = -1;
+
+            try (MemoryStack stack = MemoryStack.stackPush()) {
+                IntBuffer w = stack.mallocInt(1);
+                IntBuffer h = stack.mallocInt(1);
+                IntBuffer channels = stack.mallocInt(1);
+
+                STBImage.stbi_set_flip_vertically_on_load(false);
+                buffer_cache = STBImage.stbi_load_from_memory(imageBuffer, w, h, channels, 4); // 4 = RGBA
+
+                if (buffer_cache == null) {
+                    throw new RuntimeException("Failed to load texture from URL: " + path + " " + STBImage.stbi_failure_reason());
+                }
+
+                width = w.get();
+                height = h.get();
+
+                this.pixels = ImageLoader.ByteBufferToIntArray2(buffer_cache);
+
+                this.buffer_changed = false;
+                this.buffer_created = false;
+
+                initData(width, height, path, DEFAULT_BPP);
+                STBImage.stbi_image_free(buffer_cache);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 	
 	void initPixels(int width, int height, int bpp, ByteBuffer buffer) throws NullPointerException {
 		
@@ -423,7 +511,20 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		return this.clearDrawMap(c);
 	}
 
-	public DrawMap fill(Color c, int x, int y, int width, int height) {
+    public DrawMap fill(Colorable c, Colorable replace_from) {
+
+        int replace_color = replace_from.toInt();
+        int color = c.toInt();
+        for (int i = 0; i < pixels.length; i++) {
+            if (pixels[i] == replace_color)
+                pixels[i] = color;
+        }
+
+        buffer_changed = true;
+        return this;
+    }
+
+    public DrawMap fill(Colorable c, int x, int y, int width, int height) {
 
 		if(x + width > getWidth()) width = (int) (getWidth()-x);
 		if(y + height > getHeight()) height = (int) (getHeight()-y);
@@ -562,6 +663,97 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		buffer_changed = true;
 		return this;
 	}
+
+    public DrawMap drawFromDrawMap(int to_x, int to_y, int src_x, int src_y, int cut_width, int cut_height, DrawMap drawFrom, boolean drawAlpha) {
+// 1. Grundwerte holen
+        int srcW = (int) drawFrom.getSourceWidth();
+        int srcH = (int) drawFrom.getSourceHeight();
+        int dstW = (int) this.getSourceWidth();
+        int dstH = (int) this.getSourceHeight();
+        int[] srcPixels = drawFrom.pixels;
+
+        // --- SICHERUNG STUFE 1: Quelle beschneiden (Clipping Source) ---
+        // Wir können nicht mehr kopieren, als in der Quelle existiert
+        if (src_x < 0) {
+            cut_width += src_x;
+            src_x = 0;
+        }
+        if (src_y < 0) {
+            cut_height += src_y;
+            src_y = 0;
+        }
+        if (src_x + cut_width > srcW) cut_width = srcW - src_x;
+        if (src_y + cut_height > srcH) cut_height = srcH - src_y;
+
+        // --- SICHERUNG STUFE 2: Ziel beschneiden (Clipping Destination) ---
+        // Wenn das Bild links oder oben aus dem Ziel ragt
+        if (to_x < 0) {
+            int delta = -to_x;
+            src_x += delta;
+            cut_width -= delta;
+            to_x = 0;
+        }
+        if (to_y < 0) {
+            int delta = -to_y;
+            src_y += delta;
+            cut_height -= delta;
+            to_y = 0;
+        }
+        // Wenn das Bild rechts oder unten aus dem Ziel ragt
+        if (to_x + cut_width > dstW) cut_width = dstW - to_x;
+        if (to_y + cut_height > dstH) cut_height = dstH - to_y;
+
+        // --- SICHERUNG STUFE 3: Finale Prüfung ---
+        // Falls nach dem Clipping nichts mehr übrig ist (Breite/Höhe <= 0)
+        if (cut_width <= 0 || cut_height <= 0) return null;
+
+        // --- ZEICHNEN ---
+        for (int y = 0; y < cut_height; y++) {
+            int targetY = to_y + y;
+            int sourceY = src_y + y;
+
+            int targetOffset = targetY * dstW + to_x;
+            int sourceOffset = sourceY * srcW + src_x;
+
+            if (!drawAlpha) {
+                // Sicherstellen, dass System.arraycopy nicht über das Array-Ende schreibt
+                System.arraycopy(srcPixels, sourceOffset, this.pixels, targetOffset, cut_width);
+            } else {
+                for (int x = 0; x < cut_width; x++) {
+                    int color = srcPixels[sourceOffset + x];
+                    if (((color >> 24) & 0xFF) > 0) {
+                        this.pixels[targetOffset + x] = color;
+                    }
+                }
+            }
+        }
+        buffer_changed = true;
+        return this;
+    }
+
+    public void scaleNearest(int w2, int h2) {//not used
+        int[] dest = new int[w2 * h2];
+        double xRatio = (double) src_width / w2;
+        double yRatio = (double) src_height / h2;
+
+        for (int y = 0; y < h2; y++) {
+            for (int x = 0; x < w2; x++) {
+                int px = (int) Math.floor(x * xRatio);
+                int py = (int) Math.floor(y * yRatio);
+                dest[y * w2 + x] = pixels[py * src_width + px];
+            }
+        }
+        pixels = dest;
+        initData(w2, h2, getPATH(), 4);
+        init();
+        buffer_changed = true;
+
+        return;
+    }
+
+    public void saveDrawMap(String type, String path) {
+        FileUtils.writeImage(type, path, src_width, src_height, src_bpp, getBuffer());
+    }
 
 //	@Deprecated // sollte von der anderen ersetzt werden hat allerdings noch probleme
 //	public DrawMap drawFromDrawMap_OLD(int x, int y, DrawMap drawFrom) { //sollte abfragen ob es out of bounds oder so ist
@@ -767,11 +959,8 @@ public class DrawMap extends TextureConstruct implements Renderable {
 	}
 	
 	public DrawMap clearDrawMap(Colorable clearColor) {
-		
-		for (int i = 0; i < pixels.length; i++) {
-			pixels[i] = clearColor.toInt();
-		}
-
+        int color = clearColor.toInt();
+        Arrays.fill(pixels, color);
 		buffer_changed = true;
 		return this;
 	}
@@ -1161,7 +1350,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 				.order(ByteOrder.nativeOrder());
 
 		// Wir nutzen einen IntBuffer-View für schnelleres Schreiben
-		java.nio.IntBuffer intBuffer = buffer.asIntBuffer();
+        IntBuffer intBuffer = buffer.asIntBuffer();
 
 		for (int y = 0; y < height; y++) {
 			int yc = (t_y + y) * getSourceWidth();
@@ -1285,9 +1474,9 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		glDisable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glActiveTexture(GL_TEXTURE0);		
-		
-		SHADER.loadTransformationMatrix(translatePosition(), translateBounds(), rotation, flipX, flipY);
+		glActiveTexture(GL_TEXTURE0);
+
+        SHADER.loadTransformation((int) getX(), (int) getY(), (int) getWidth(), (int) getHeight(), rotation.getZ(), 1f, flipX, flipY);
 		SHADER.load2DColor(overlayColor.toColor(), overlayColorIntensity);
 		
 		glBindTexture(GL_TEXTURE_2D, getID());
@@ -1339,7 +1528,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, getID());
 
-		SHADER.loadTransformationMatrix(translatePosition(), translateBounds(), rotation, flipX, flipY);
+        SHADER.loadTransformation((int) getX(), (int) getY(), (int) getWidth(), (int) getHeight(), rotation.getZ(), 1f, flipX, flipY);
 		if (overlayColor != null)
 			SHADER.load2DColor(overlayColor.toColor(), overlayColorIntensity);
 		
@@ -1391,7 +1580,8 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, getID());
 
-		SHADER.loadTransformationMatrix(translatePosition(), translateBounds(), rotation, flipX, flipY);
+//		SHADER.loadTransformationMatrix(translatePosition(), translateBounds(), rotation, flipX, flipY);
+        SHADER.loadTransformation((int) getX(), (int) getY(), (int) getWidth(), (int) getHeight(), rotation.getZ(), 1f, flipX, flipY);
 		if (overlayColor != null)
 			SHADER.load2DColor(overlayColor.toColor(), overlayColorIntensity);
 
@@ -1433,13 +1623,11 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		
 		for(DrawMap texture : newTextures.keySet()) {	
 			for(Vector2 size : newTextures.get(texture).keySet()) {
-				Vector2 nsize = texture.translateBounds(size.getWidth(), size.getHeight());
 				for (Vector2 pos : newTextures.get(texture).get(size)) {
 
 					texture.create();
-					
-					Vector2 npos = texture.translatePosition(pos.getX(), pos.getY(), size); // <---
-					shader.loadTransformationMatrix(npos, nsize, texture.rotation, texture.flipX, texture.flipY);
+
+                    SHADER.loadTransformation((int) pos.getX(), (int) pos.getY(), (int) size.getWidth(), (int) size.getHeight(), texture.rotation.getZ(), texture.scale, texture.flipX, texture.flipY);
 					shader.load2DColor(texture.overlayColor.toColor(), texture.overlayColorIntensity);
 					glBindTexture(GL_TEXTURE_2D, texture.getID());
 					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);				
@@ -1472,11 +1660,8 @@ public class DrawMap extends TextureConstruct implements Renderable {
 				
 		for (Vector4 bounding : bounds) {
 
-			Vector4 transl = map.translate(bounding);
-					
 			map.create();
-
-			shader.loadTransformationMatrix(transl.getPosition(), transl.getSize(), map.rotation, map.flipX, map.flipY);
+            SHADER.loadTransformation((int) bounding.getX(), (int) bounding.getY(), (int) bounding.getWidth(), (int) bounding.getHeight(), map.rotation.getZ(), 1f, map.flipX, map.flipY);
 			shader.load2DColor(map.overlayColor.toColor(), map.overlayColorIntensity);
 			glBindTexture(GL_TEXTURE_2D, map.getID());
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);	
@@ -1508,11 +1693,8 @@ public class DrawMap extends TextureConstruct implements Renderable {
 			shader.load2DColor(overlayColor.toColor(), overlayColorIntensity);
 
 		for(Vector4 bound : positions) {
-			Vector2 nsize = translateBounds(bound.getWidth(), bound.getHeight());
-			Vector2 npos = translatePosition(bound.getX(), bound.getY(), bound.getSize());
-
 			// Nur die Matrix muss sich pro Objekt ändern
-			shader.loadTransformationMatrix(npos, nsize, rotation, flipX, flipY);
+            SHADER.loadTransformation((int) bound.getX(), (int) bound.getY(), (int) bound.getWidth(), (int) bound.getHeight(), rotation.getZ(), scale, flipX, flipY);
 
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		}

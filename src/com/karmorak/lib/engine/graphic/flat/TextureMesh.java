@@ -19,8 +19,11 @@ public class TextureMesh {
 		
 	
 	public TextureMesh() {
-		this.postions = new Vector2[]{new Vector2(-1, 1), new Vector2(-1, -1), new Vector2(1, 1), new Vector2(1, -1)};
-		this.textureCoordinates = new Vector2[]{new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 0), new Vector2(1, 1)};
+        this.postions = new Vector2[]{new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1)};
+
+//		this.postions = new Vector2[]{new Vector2(-1, 1), new Vector2(-1, -1), new Vector2(1, 1), new Vector2(1, -1)};
+//		this.textureCoordinates = new Vector2[]{new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 0), new Vector2(1, 1)};
+        this.textureCoordinates = new Vector2[]{new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1)};
 	}
 	
 	public TextureMesh(Vector2[] position) {

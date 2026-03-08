@@ -1,11 +1,9 @@
 package com.karmorak.lib.font.ownchar;
 
-import com.karmorak.lib.KLIB;
 import com.karmorak.lib.font.OwnFont;
 import com.karmorak.lib.font.identifier.CharIdentifier;
 import com.karmorak.lib.font.identifier.Identifier;
 import com.karmorak.lib.font.identifier.StringIdentifier;
-import com.karmorak.lib.math.Vector2;
 import com.karmorak.lib.math.Vector2i;
 
 import java.util.ArrayList;
@@ -17,84 +15,63 @@ public abstract class OwnCharData {
 
     protected final Identifier identifier;
 
-    protected final Vector2 translated_pos;
-    protected final Vector2 translated_size;
-
     float scale = 1f;
 
     protected OwnCharData(Identifier identifier) {
         pos = new Vector2i();
         bounds = new Vector2i();
-        translated_pos = new Vector2();
-        translated_size = new Vector2();
         this.identifier = identifier;
     }
 
 
     public void setPosition(int x, int y) {
-
-        if(x != pos.getX())
-            translated_pos.setX(translatePosX(x));
-        if(y != pos.getY())
-            translated_pos.setY(translatePosY(y));
-
         pos.set(x, y);
     }
 
     public void setPosX(int x) {
-        translated_pos.setX(translatePosX(x));
         pos.setX(x);
     }
 
     public void setPosY(int y) {
-        translated_pos.setY(translatePosY(y));
         pos.setY(y);
     }
 
     public Vector2i getPosition() {
         return pos;
     }
+
+    public int getX() {
+        return pos.getX();
+    }
+
+    public int getY() {
+        return pos.getY();
+    }
+
+    public int getWidth() {
+        return bounds.getWidth();
+    }
+
+    public int getHeight() {
+        return bounds.getHeight();
+    }
+
+
+
     public Vector2i getBounds() {
         return bounds;
     }
 
-
     public void setScale(float scale) {
         this.scale = scale;
-
-        float tWidth = bounds.getWidth() * scale;
-        float tHeight = bounds.getHeight() * scale;
-
-        float sWidth =  KLIB.graphic.Width() ;
-        float sHeight =  KLIB.graphic.Height();
-
-        translated_size.set((tWidth / sWidth), (tHeight/sHeight));
     }
 
     public float getScale() {
         return scale;
     }
 
-    public Vector2 getTranslatedPosition() {
-        return translated_pos;
-    }
-
-    public Vector2 getTranslatedSize() {
-        return translated_size;
-    }
-
     public Identifier getIdentifier() {
         return identifier;
-    }
-
-    protected float translatePosX(int x) {
-
-        return (bounds.getWidth() * scale + 2f*x) / KLIB.graphic.Width() - 1;
-    }
-
-    protected float translatePosY(int y) {
-
-        return (bounds.getHeight() * scale + 2f*y) / KLIB.graphic.Height() - 1;
     }
 
     @Override

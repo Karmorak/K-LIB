@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.karmorak.lib.ColorPreset;
 import com.karmorak.lib.engine.graphic.Renderable;
 import com.karmorak.lib.math.Vector2;
 import com.karmorak.lib.math.Vector4;
@@ -30,8 +31,8 @@ public class TextureRegion extends TextureConstruct implements Renderable {
 		
 		scale = 1f;
 		pos = new Vector2(0, 0);
-		size = new Vector2(DATA.getWIDTH(), DATA.getHEIGHT());		
-		translBounds.set(translatePosition(), translateBounds());
+        size = new Vector2(DATA.getWIDTH(), DATA.getHEIGHT());
+        overlayColor = ColorPreset.WHITE;
 	}
 	
 	public TextureRegion(URL path, Vector4 texBounds) {
@@ -61,8 +62,7 @@ public class TextureRegion extends TextureConstruct implements Renderable {
 		
 		scale = 1f;
 		pos = new Vector2(0, 0);
-		size = new Vector2(DATA.getWIDTH(), DATA.getHEIGHT());		
-		translBounds.set(translatePosition(), translateBounds());
+        size = new Vector2(DATA.getWIDTH(), DATA.getHEIGHT());
 	}
 	
 	public TextureRegion(Texture t, Vector4 texBounds) {
@@ -92,8 +92,7 @@ public class TextureRegion extends TextureConstruct implements Renderable {
 		
 		scale = 1f;
 		pos = new Vector2(0, 0);
-		size = new Vector2(DATA.getWIDTH(), DATA.getHEIGHT());		
-		translBounds.set(translatePosition(), translateBounds());
+        size = new Vector2(DATA.getWIDTH(), DATA.getHEIGHT());
 	}
 	
 	
@@ -118,7 +117,7 @@ public class TextureRegion extends TextureConstruct implements Renderable {
 
 		//Sprite2D.translatePixelBoundstoGL(1920, 1080, new Vector2(3840, 2160)
 		glActiveTexture(GL_TEXTURE0);
-		SHADER.loadTransformationMatrix(translBounds.getPosition(), translBounds.getSize(), true);
+        SHADER.loadTransformation((int) getX(), (int) getY(), (int) getWidth(), (int) getHeight(), 0, rotation.getZ(), flipX, flipY);
 		glBindTexture(GL_TEXTURE_2D, DATA.getID());
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		
@@ -141,8 +140,8 @@ public class TextureRegion extends TextureConstruct implements Renderable {
 			else glBindVertexArray(t.quad.getVAO());
 			glEnableVertexAttribArray(0);
 			glEnableVertexAttribArray(1);
-			
-			shader.loadTransformationMatrix(t.translBounds.getPosition(), t.translBounds.getBounds(), true);
+
+            shader.loadTransformation((int) t.getX(), (int) t.getY(), (int) t.getWidth(), (int) t.getHeight(), 0, t.rotation.getZ(), t.flipX, t.flipY);
 			glBindTexture(GL_TEXTURE_2D, t.DATA.getID());
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		}		
@@ -170,8 +169,7 @@ public class TextureRegion extends TextureConstruct implements Renderable {
 					region.setPosition(pos.getX(), pos.getY());
 					glBindVertexArray(region.quad.getVAO());
 
-					
-					shader.loadTransformationMatrix(region.translBounds.getPosition(), region.translBounds.getBounds(), true);
+                    shader.loadTransformation((int) region.getX(), (int) region.getY(), (int) region.getWidth(), (int) region.getHeight(), 0, region.rotation.getZ(), region.flipX, region.flipY);
 					glBindTexture(GL_TEXTURE_2D, region.DATA.getID());
 					glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);				
 				}		
@@ -220,11 +218,9 @@ public class TextureRegion extends TextureConstruct implements Renderable {
 		shader.load2DColor(overlayColor.toColor(), overlayColorIntensity);
 
 		for(Vector4 bound : positions) {
-			Vector2 nsize = translateBounds(bound.getWidth(), bound.getHeight());
-			Vector2 npos = translatePosition(bound.getX(), bound.getY(), bound.getSize());
-
 			// Nur die Matrix muss sich pro Objekt ändern
-			shader.loadTransformationMatrix(npos, nsize, rotation, flipX, flipY);
+            shader.loadTransformation((int) bound.getX(), (int) bound.getY(), (int) bound.getWidth(), (int) bound.getHeight(), 0, scale, false, false);
+
 
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		}

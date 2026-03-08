@@ -26,6 +26,8 @@ import javax.swing.JOptionPane;
 
 import static org.lwjgl.glfw.GLFW.*;
 
+import com.karmorak.lib.engine.graphic.MasterRenderer;
+import com.karmorak.lib.gamestate.StateManager;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWImage;
@@ -60,7 +62,7 @@ public class Window {
 
 	private int frames;
 	private static double time;
-	private static double delta;
+    private static double delta; //delta time ist statisch in wird aber von der nicht-statischen update aktualisiert
 	private static double lastFrameTime = KLIB.graphic.getTime();
 	
 	private Input input;
@@ -249,10 +251,8 @@ public class Window {
 		if(isResized) {
 			isResized = false;
 			GL46.glViewport(0, 0,(int) bounds.getX(),(int) bounds.getY());
-//			projection = Matrix4.projection(FOV, bounds.getX() / bounds.getY(), 0.1f, 1000f);
-		}		
-		
-		
+            StateManager.resize((int) bounds.getX(), (int) bounds.getY());
+        }
 		
 		frames++;
 		double currentTime = KLIB.graphic.getTime();
@@ -271,7 +271,6 @@ public class Window {
 		
 		if(Input.keys[GLFW_KEY_F11]) setFullscreen(!options.is_fullscreen);
 		glfwPollEvents();
-
 	}
 
 	public static void updateMonitors() {		//Muss bei änderungen der Monitore manuel aufgerufen werden
@@ -327,9 +326,7 @@ public class Window {
 		glfwMakeContextCurrent(windowID);
 		
 		isResized = true;
-		
 		update();
-		
 		glfwSwapBuffers(windowID);
 	}
 	
@@ -339,10 +336,12 @@ public class Window {
 	
 	public float getHeight() {
 		return bounds.getHeight();
-	}	
+    }
+
 	public Vector2 getBounds() {
 		return bounds;
 	}
+
 	public Vector2 getSize() {
 		return bounds;
 	}
@@ -350,12 +349,21 @@ public class Window {
 		this.bounds.set(width, height);
 		isResized = true;
 		GLFW.glfwSetWindowSize(windowID,(int) bounds.getWidth(),(int) bounds.getHeight());
+        update();
+        MasterRenderer.updateWindowSize();
+
+
 	}
 	public void setSize(Vector2 bounds) {
 		setSize((int)bounds.getWidth(),(int) bounds.getHeight());
 	}
 
-	
+
+    public void setWindowSize(int width, int height) {
+        setSize(width, height);
+    }
+
+
 	public float getX() {
 		return position.getX();
 	}
@@ -453,31 +461,29 @@ public class Window {
 	
 	private static void createSystemTrayIcon() {
 		BufferedImage inputImage = null;
-	      try {
+        //Check the SystemTray is supported
+        if (!SystemTray.isSupported()) {
+            System.out.println("SystemTray is not supported");
+            return;
+        }
+
+        try {
 	    	URL url =   KLIB.URL(KLIB.lib.ASSET_PATH + "lib_icon_16.png");
 	    	  
 			InputStream stream = url.openStream();
 			inputImage = ImageIO.read(stream);
 			stream.close();
-			
-			
-	      } catch (IOException e) {
-			// TODO Auto-generated catch block
-	    	  System.out.println("failed to read trayicon");
-	      }
-			
-			//Check the SystemTray is supported
-	        if (!SystemTray.isSupported()) {
-	            System.out.println("SystemTray is not supported");
-	            return;
-	        }
-	        
-	        tray = SystemTray.getSystemTray();	    
-	        trayIcon =  new TrayIcon(inputImage);
-	        trayIcon.setImageAutoSize(true);	
-	        trayIcon.setToolTip(KLIB.APP_NAME);
-	        inputImage.flush();
-//	        setTrayIconPopupMenu();
+        } catch (IOException e) {
+            System.out.println("failed to read trayicon");
+        }
+
+
+        tray = SystemTray.getSystemTray();
+        trayIcon = new TrayIcon(inputImage);
+        trayIcon.setImageAutoSize(true);
+        trayIcon.setToolTip(KLIB.APP_NAME);
+        inputImage.flush();
+//	    setTrayIconPopupMenu();
 	}
 	
 	public static void addTrayIconListener(ActionListener listener) {
@@ -509,16 +515,9 @@ public class Window {
 		}
 		update();
 	}
-	
-	public void setWindowSize(int width, int height) {
-		glfwSetWindowSize(windowID, width, height);
-		bounds.set(width, height);
-		update();
-	}
-	
-	
-	
-	public void setDecorated(boolean b) {
+
+
+    public void setDecorated(boolean b) {
 		if(b) {
 			glfwSetWindowAttrib(windowID, GLFW_DECORATED, GLFW_TRUE);
 			update();

@@ -65,6 +65,14 @@ public class Vector4  implements Vector {
 		return height;
 	}
 
+    public float getZ() {
+        return width;
+    }  // Alias für Blau
+
+    public float getW() {
+        return height;
+    } // Alias für Alpha
+
 	public void setHeight(float height) {
 		this.height = height;
 	}

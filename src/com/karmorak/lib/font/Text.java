@@ -299,7 +299,7 @@ public class Text {
 	}
 	
 	public int getLineSpacing() {
-		return (int) (line_spacing );
+		return (int) (line_spacing * getTotalScale());
 	}
 	
 	public int getLineSpacing_Raw() {
@@ -311,7 +311,7 @@ public class Text {
 	}	
 	
 	public float getCharSpacing() {
-		return font.char_spacing * getScale_Total();
+		return font.char_spacing * getTotalScale();
 	}	
 	
 	@SuppressWarnings("unused")
@@ -369,10 +369,10 @@ public class Text {
 
 		if(text_align == Text_Align.MIDDLE) {				
 			int line_width = getWidth_Raw(line_i);
-            return (int) (((longest_line_width_raw - line_width) * 0.5f) * getScale_Total());
+			return (int) (((longest_line_width_raw - line_width) * 0.5f) * getTotalScale());
 		} else if(text_align == Text_Align.RIGHT_BOUND) {				
 			int line_width = getWidth_Raw(line_i);
-            return (int) ((longest_line_width_raw - line_width) * getScale_Total());
+			return (int) ((longest_line_width_raw - line_width) * getTotalScale());
 		}
 		
 		return 0;
@@ -391,9 +391,9 @@ public class Text {
 	//		return y;
 	//	}
 	//}
-	
+
 	private int calcLongestLine() {
-		int longest = 0;		
+		int longest = 0;
 		int width = (int) getWidth_Raw(0);
 		for (int i = 1; i < name.length; i++) {
 			int width_ = (int) getWidth_Raw(i);
@@ -403,13 +403,7 @@ public class Text {
 			}
 		}
 		longest_line_width_raw = width;
-		return longest_line = longest;	
-	}
-	
-	
-	public int getLongestLine() {
-		if(longest_line > -1) return longest_line;
-		else return calcLongestLine();
+		return longest_line = longest;
 	}
 
 	
@@ -418,16 +412,16 @@ public class Text {
 	}
 	
 	public float getWidth(int line) {
-        return max_width == 0 ? font.getWordWidth_Raw(name[line]) * getScale_Total() : max_width;
+		return max_width == 0 ? font.getWordWidth_Raw(name[line]) * getTotalScale() : max_width;
 	}	
 
 	public int getWidth(int startIndex, int endIndex) {
-		return (int) (font.getWordWidth_Raw(name[0], startIndex, endIndex)  * getScale_Total());
+		return (int) (font.getWordWidth_Raw(name[0], startIndex, endIndex) * getTotalScale());
 	}
 
 	@Deprecated
 	private int getWidth_Raw(int line) {
-        return (int) font.getWordBounds_Raw(name[line]).getWidth();
+		return (int) font.getWordWidth_Raw(name[line]);
 	}
 	
 	public float getHeight() {
@@ -435,15 +429,15 @@ public class Text {
 	}
 	
 	public float getHeight(int i) {
-        return font.getWordHeight_Raw(name[i]) * getScale_Total();
+		return font.getWordHeight_Raw(name[i]) * getTotalScale();
 	}
 
 	public float getWholeWidth() {
 		
 		if(longest_line == -1)
 			calcLongestLine();
-		
-		return longest_line_width_raw * getScale_Total();		
+
+		return longest_line_width_raw * getTotalScale();
 	}
 	
 	//ay wird zwar berücksichtigt aber wahrscheinlich dennoch veraltet
@@ -458,11 +452,9 @@ public class Text {
 			float[] data = font.DATA.getInfo(ch.getIdentifier());
 			float a_y = data[1];
 			if(a_y < 0 ) a_y = a_y * -1;
-			
-			
+
 			if(bounds.getHeight() + a_y > height) height = bounds.getHeight() + a_y;
-			
-			
+
 		}	
 		return height;		
 	}
@@ -537,7 +529,7 @@ public class Text {
 
 
 	//ay wird nicht berücksichtigt TODO
-	public Vector2 getSize_Total() {		
+	public Vector2 getTotalSize() {
 		if(name.length == 1) {
 			return new Vector2(getWidth(0), getHeight(0));	
 		} else {
@@ -557,7 +549,37 @@ public class Text {
 			return new Vector2(width, height);
 		}
 	}
-	
+
+	public int getTotalWidth() {
+		if (name.length == 1) {
+			return (int) getWidth(0);
+		} else {
+			int width = (int) getWidth(0);
+
+			for (int i = 1; i < name.length; i++) {
+
+				int w = (int) getWidth(i);
+				if (w > width) {
+					width = w;
+				}
+			}
+			return width;
+		}
+	}
+
+	public int getTotalHeight() {
+		if (name.length == 1) {
+			return (int) getHeight();
+		} else {
+			int height = (int) getHeight(0);
+			for (int i = 1; i < name.length; i++) {
+				height += (int) (getHeight(i) + getLineSpacing());
+			}
+			return height;
+		}
+	}
+
+
 	//ay wird nicht berücksichtigt TODO
 	public Vector4 getBounds_Total() {
 		Vector2 v = getTotalPosition();
@@ -634,12 +656,20 @@ public class Text {
 		if(max_width != 0) changed[0] = true;
 		changed[3] = true;
 	}
+
+	public void setTotalHeight(float height) {
+		scale = 1f;
+		this.scale = height / getTotalHeight();
+		if (max_width != 0) changed[0] = true;
+		changed[3] = true;
+	}
+
 	
 	public float getScale() {
 		return scale;
 	}
-	
-	public float getScale_Total() {
+
+	public float getTotalScale() {
 		return scale * font.scale;
 	}
 
@@ -846,7 +876,7 @@ public class Text {
 	private void update(int pos_x, int pos_y) {
 		FontCache fontCache = caches.get(font.getPath());
 		float char_spacing = font.char_spacing * font.getScale();
-		float all_scale = getScale_Total();
+		float all_scale = getTotalScale();
 
 		if(fontCache == null) {
 			caches.put(font.getPath(), new FontCache());
@@ -1040,7 +1070,7 @@ public class Text {
 		changed[1] = false;
 	}
 	private void update_c3_scale(FontCache fontCache, int pos_x, int pos_y) {
-		float all_scale = getScale_Total();
+		float all_scale = getTotalScale();
 		float char_spacing = font.char_spacing * font.getScale();
 		float y = pos_y;
 		for (int i = 0; i < name.length; i++) {
@@ -1096,7 +1126,7 @@ public class Text {
 		changed[6] = false;
 	}
 	private void update_c56_xy(FontCache fontCache, int pos_x, int pos_y) {
-		float all_scale = getScale_Total();
+		float all_scale = getTotalScale();
 		float char_spacing = font.char_spacing * font.getScale();
 		float y = pos_y;
 
@@ -1191,7 +1221,7 @@ public class Text {
 
 	private void update_c6_y(int pos_y) { //  position
 		float y = pos_y;
-		float all_scale = getScale_Total();
+		float all_scale = getTotalScale();
 
 		for (OwnCharData[] ownCharData : name) {
 			int max_height = 0;
@@ -1209,7 +1239,7 @@ public class Text {
 	int al_x = 0;
 
 	private void update_c7_alignments(FontCache fontCache, int pos_x, int pos_y) {
-		float all_scale = getScale_Total();
+		float all_scale = getTotalScale();
 		float char_spacing = font.char_spacing * font.getScale();
 
 		ArrayList<Identifier> needed = new ArrayList<>();

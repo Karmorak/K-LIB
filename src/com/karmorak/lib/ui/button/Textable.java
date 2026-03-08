@@ -1,6 +1,5 @@
 package com.karmorak.lib.ui.button;
 
-import com.karmorak.lib.Color;
 import com.karmorak.lib.ColorPreset;
 import com.karmorak.lib.Input;
 import com.karmorak.lib.KLIB;
@@ -71,12 +70,8 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
         text.setPosition(getX() + line_thickness*2, getY() + (box_size.getHeight()-text.getHeight()) * text_pos_y);
         cursor.setScale(text.getScale());
 
-        selected_Buttons.add(this);
-
         registerEvent((Button_onTouchDown_Event) this);
 //        registerEvent((Button_onTouchDown_Event) this);
-
-
 
         setAlignment(false);
 //        updateCursor();
@@ -254,8 +249,8 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
                 h.draw(renderer, layer + 1);
             }
 
-            if(marked_b)
-                renderer.processTexture(marked, layer+2);
+//            if(marked_b)
+//                renderer.processTexture(marked, layer+2);
 
             renderer.processTexture(outline, layer);
 
@@ -270,7 +265,6 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
 
     @Override
     public void onTouchDown() {
-
 
         long currentTime = System.currentTimeMillis();
         if(currentTime - lastClickTime < DOUBLE_CLICK_DELAY) {
@@ -406,5 +400,13 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
                 updateCursor();
             }
         }
+    }
+
+    @Override
+    public void dispose() {
+        super.dispose();
+        outline.destroy();
+        marked.destroy();
+        highlighted.destroy();
     }
 }

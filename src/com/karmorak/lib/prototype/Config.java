@@ -3,6 +3,7 @@ package com.karmorak.lib.prototype;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import com.karmorak.lib.utils.file.FileUtils;
 
@@ -67,26 +68,30 @@ public class Config {
 				break;
 			}		
 		}
-		
-		
+
 		try {
 			FileUtils.writeToFile(FILE, name + ": " + value, 2, found);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
-	
-	
+	}
+
+	public void setValue(String name, String[] value) {
+		setValue(name, Arrays.toString(value));
+	}
+
+	public void setValue(String name, int[] value) {
+		setValue(name, Arrays.toString(value));
 	}
 	
 	public String getValue(String name) {
 			
 		readConfig();
-		
-		for (int i = 0; i < file_contents.size(); i++) {			
-			if(file_contents.get(i).startsWith(name)) {
-				return file_contents.get(i).replaceFirst(name + ": ", "");
-			}		
+
+		for (String fileContent : file_contents) {
+			if (fileContent.startsWith(name)) {
+				return fileContent.replaceFirst(name + ": ", "");
+			}
 		}
 		return null;
 	}
@@ -144,26 +149,65 @@ public class Config {
 	
 	public float getValue_asFloat(String name, float def_value) {
 		return Float.parseFloat(getValue(name, "" + def_value));
-	}	
-	
+	}
+
+
 	public String[] getValue_asStringArray(String key) {
-		String value = getValue(key).replaceFirst("[", "");
-		value = value.substring(0, value.length()-2);	
+		String value = getValue(key);
+		value = value.substring(1, value.length() - 1);
 		String[] list = value.split(", ");
 		
 		return list;
 	}
 	
 	public String[] getValue_asStringArray(String key, String[] def_value) {
-		
-		
-		
-		String value = getValue(key,"[" + String.join(",", def_value)+"];");
-		value = value.substring(1, value.length()-2);	
-		System.out.println(value);
+
+		String value = getValue(key, "[" + String.join(", ", def_value) + "];");
+		value = value.substring(1, value.length() - 1);
 		String[] list = value.split(", ");
 		
 		return list;
+	}
+
+	public int[] getValue_asIntArray(String key) {
+
+		String value = getValue(key);
+		if (value == null || value.isEmpty()) return null;
+		value = value.substring(1, value.length() - 1);
+
+		String[] list = value.split(", ");
+		int[] list_int = new int[list.length];
+		for (int i = 0; i < list.length; i++) {
+			try {
+				list_int[i] = Integer.parseInt(list[i]);
+			} catch (NumberFormatException e) {
+				System.err.println(list[i] + " is not an integer");
+				return null;
+			}
+		}
+
+		return list_int;
+	}
+
+	public int[] getValue_asIntArray(String key, int[] def_value) {
+
+		String value = getValue(key);
+		if (value == null || value.isEmpty()) return def_value;
+
+		value = value.substring(1, value.length() - 1);
+
+		String[] list = value.split(", ");
+		int[] list_int = new int[list.length];
+		for (int i = 0; i < list.length; i++) {
+			try {
+				list_int[i] = Integer.parseInt(list[i]);
+			} catch (NumberFormatException e) {
+				System.err.println(list[i] + " is not an integer");
+				return def_value;
+			}
+		}
+
+		return list_int;
 	}
 	
 }
