@@ -1,4 +1,4 @@
-package com.karmorak.lib.engine.graphic.roomy.shaders;
+package com.karmorak.lib.engine.graphic.shaders;
 
 import static org.lwjgl.opengl.GL46.*;
 
@@ -30,22 +30,30 @@ public class ObjectShader extends ShaderProgramm {
 
 	@Override
 	public void create() {
+        System.out.println("w5-2-2-1");
 		programID = glCreateProgram();
 		vertexID = glCreateShader(GL_VERTEX_SHADER);
-		
+
+        // Validierung vor dem Senden an die GPU
+        if (vertexFile == null || vertexFile.trim().isEmpty()) {
+            throw new RuntimeException("Vertex Shader Quellcode ist leer oder null!");
+        }
+        System.out.println("Erste 10 Zeichen des Shaders: [" + vertexFile.substring(0, Math.min(10, vertexFile.length())) + "]");
 		glShaderSource(vertexID, vertexFile);
 		glCompileShader(vertexID);
-		
+
+        System.out.println("w5-2-2-2");
 		if(glGetShaderi(vertexID, GL_COMPILE_STATUS) == GL_FALSE) {
 			System.err.println("Vertex Shader: " + glGetShaderInfoLog(vertexID));
 			return;
 		}
-		
+
+        System.out.println("w5-2-2-3");
 		fragmentID = glCreateShader(GL_FRAGMENT_SHADER);
 		
 		glShaderSource(fragmentID, fragmentFile);
 		glCompileShader(fragmentID);
-		
+        System.out.println("w5-2-2-4");
 		if(glGetShaderi(fragmentID, GL_COMPILE_STATUS) == GL_FALSE) {
 			System.err.println("Fragment Shader: " + glGetShaderInfoLog(fragmentID));
 			return;
@@ -54,7 +62,7 @@ public class ObjectShader extends ShaderProgramm {
 		
 		glAttachShader(programID, vertexID);
 		glAttachShader(programID, fragmentID);
-		
+        System.out.println("w5-2-2-5");
 		glLinkProgram(programID);
 		if(glGetProgrami(programID, GL_LINK_STATUS) == GL_FALSE) {
 			System.err.println("Programm Linking:" + glGetProgramInfoLog(programID));
@@ -66,10 +74,11 @@ public class ObjectShader extends ShaderProgramm {
 			System.err.println("Programm Validating:" + glGetProgramInfoLog(programID));
 			return;
 		}
-		
+        System.out.println("w5-2-2-6");
 		glDeleteShader(vertexID);
 		glDeleteShader(fragmentID);		
 		created = true;
+        System.out.println("w5-2-2-7");
 	}
 
 	

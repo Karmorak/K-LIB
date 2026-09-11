@@ -257,3 +257,21 @@ v. 1.0.0 r30 (25.02.2026)
     - Texture now can use Strings as Path (they have to be outside a jar)
     - MasterRenderer.process got new variants and works now as it should
     - new TextureFragment Shader now handles the overlay colors properly
+  v. 1.2.0 (23.03.2026)
+    - Removed GSM from running and Input completely
+    - useGlobalRenderer is now standard and always active
+    - added loading Spinner and Textbox in KLIB
+    - added some new ColorPresets for Darkmodes
+    - added Boxable interface and Collideable which implements Boxable
+    - TextureConstruct now extends Collideable
+    - added new ways to change to BackgroundColor in MasterRenderer
+    - Text: added new feature that draw 3 dots on when Text has a  max width and is exceeding (experimental yet)
+    - Textable now uses one static default texture
+    - some fixes for Textable
+    - improved shader loading
+    - removed FileManager and moved some of the methods into FileUtils
+    - renamed FileUtils.readFiletoArray to readFile
+  v 1.3.0 (11.09.2026)
+    - rewrite of the Rendering pipeline with MasterRenderer
+        - processTexture and similar methods got removed, everything now works under process(..)
+        - Batch Rendering is now more efficent than ever using float buffers

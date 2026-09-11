@@ -548,8 +548,8 @@ public class SButton implements Comparable<SButton>  {
 				
 //				if(background != null && background.bg_show)
 //					renderer.processTexture(background.texture, background.getBGPosition(), background.getBGBounds(), layer);
-				
-				renderer.processTexture(texture, layer);
+
+                renderer.process(texture, layer);
 //				was_drawn = true;
 			}	
 		}
@@ -572,8 +572,8 @@ public class SButton implements Comparable<SButton>  {
 				
 //				if(background != null && background.bg_show)
 //					renderer.processTexture(background.texture, background.getBGPosition(), background.getBGBounds(), layer);
-				
-				renderer.processTexture(texture, x, y, layer);			
+
+                renderer.process(texture, (int) x, (int) y, layer);
 			}		
 			
 		}

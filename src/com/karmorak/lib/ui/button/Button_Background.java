@@ -73,7 +73,7 @@ public class Button_Background {
 	
 	public void draw(MasterRenderer renderer,int layer) {
 		if(bound.show)
-			renderer.processTexture(texture, getBGPosition(), getBGBounds(), layer);
+            renderer.process(texture, getBGPosition(), getBGBounds(), layer);
 	}
 	
 }

@@ -77,6 +77,7 @@ public abstract class OwnCharData {
     @Override
     public abstract String toString();
 
+
     public static OwnCharData[] createOwnChars(String name, OwnFont font) {
 
         //OwnCharData[] names = new OwnChar[name.length()];

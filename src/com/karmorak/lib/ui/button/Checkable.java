@@ -78,7 +78,7 @@ public class Checkable extends Button {
     }
 
     @Override
-    public void setX(float x) {
+    public Checkable setX(float x) {
         outline.setX(x);
         background_highlighted.setX(x);
         checkmark.setX(x);
@@ -86,10 +86,12 @@ public class Checkable extends Button {
         if(checkbox_right)
             super.setX(x - (text.getWidth() + font.getCharSpacing()) * getScale());
         else
-            super.setX(x + (checkbox_size + font.getCharSpacing()) * getScale());;
+            super.setX(x + (checkbox_size + font.getCharSpacing()) * getScale());
+
+        return this;
     }
     @Override
-    public void setY(float y) {
+    public Checkable setY(float y) {
         outline.setY(y);
         background_highlighted.setY(y);
         checkmark.setY(y);
@@ -98,6 +100,7 @@ public class Checkable extends Button {
             super.setY(y);
         else
             super.setY(y);
+        return this;
     }
     @Override
     public Button setPosition(float x, float y) {
@@ -174,7 +177,7 @@ public class Checkable extends Button {
     public void draw(MasterRenderer renderer, int layer) {
         if(show) {
             if(buttonBackground != null && buttonBackground.bg_show)
-                renderer.processTexture(buttonBackground.texture, buttonBackground.getBGPosition(), buttonBackground.getBGBounds(), layer);
+                renderer.process(buttonBackground.texture, buttonBackground.getBGPosition(), buttonBackground.getBGBounds(), layer);
 
             text.draw(renderer, layer);
 
@@ -183,12 +186,12 @@ public class Checkable extends Button {
             }
 
             if(isHovered())
-                renderer.processTexture(background_highlighted, layer);
+                renderer.process(background_highlighted, layer);
 
             if(isSelected())
-                renderer.processTexture(checkmark, layer+1);
+                renderer.process(checkmark, layer + 1);
 
-            renderer.processTexture(outline, layer+2);
+            renderer.process(outline, layer + 2);
         }
     }
     @Override
@@ -199,7 +202,7 @@ public class Checkable extends Button {
     public void draw(MasterRenderer renderer, float x, float y, int layer) {
         if(show) {
             if(buttonBackground != null && buttonBackground.bg_show)
-                renderer.processTexture(buttonBackground.texture, buttonBackground.getBGPosition(), buttonBackground.getBGBounds(), layer);
+                renderer.process(buttonBackground.texture, buttonBackground.getBGPosition(), buttonBackground.getBGBounds(), layer);
 
             if(checkbox_right)
                 text.draw(renderer, x - (text.getWidth() + font.getCharSpacing()) * getScale(), y, layer);
@@ -211,12 +214,12 @@ public class Checkable extends Button {
             }
 
             if(isHovered())
-                renderer.processTexture(background_highlighted, new Vector2(x, y),new Vector2(checkbox_size * getScale(), checkbox_size * getScale()), layer);
+                renderer.process(background_highlighted, new Vector2(x, y), new Vector2(checkbox_size * getScale(), checkbox_size * getScale()), layer);
 
             if(isSelected())
-                renderer.processTexture(checkmark, new Vector2(x, y),new Vector2(checkbox_size * getScale(), checkbox_size * getScale()), layer+1);
+                renderer.process(checkmark, new Vector2(x, y), new Vector2(checkbox_size * getScale(), checkbox_size * getScale()), layer + 1);
 
-            renderer.processTexture(outline, new Vector2(x, y),new Vector2(checkbox_size * getScale(), checkbox_size * getScale()), layer+2);
+            renderer.process(outline, new Vector2(x, y), new Vector2(checkbox_size * getScale(), checkbox_size * getScale()), layer + 2);
         }
     }
 

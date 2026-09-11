@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -38,6 +39,8 @@ import com.karmorak.lib.ColorPreset;
 import com.karmorak.lib.Colorable;
 import com.karmorak.lib.engine.graphic.GLTaskQueue;
 import com.karmorak.lib.engine.graphic.Renderable;
+import com.karmorak.lib.engine.graphic.shaders.InstanceBuffer;
+import com.karmorak.lib.engine.graphic.shaders.TextureShader;
 import com.karmorak.lib.math.*;
 import com.karmorak.lib.utils.file.FileUtils;
 import org.lwjgl.BufferUtils;
@@ -526,14 +529,14 @@ public class DrawMap extends TextureConstruct implements Renderable {
 
     public DrawMap fill(Colorable c, int x, int y, int width, int height) {
 
-		if(x + width > getWidth()) width = (int) (getWidth()-x);
-		if(y + height > getHeight()) height = (int) (getHeight()-y);
+//		if(x + width > getSourceWidth()) width = (int) (getSourceWidth()-x);
+//		if(y + height > getSourceHeight()) height = (int) (getSourceHeight()-y);
 
 		int color = c.toInt();
 
-		for(int sX = x; sX < width; sX++) {
-			for (int sY = y; sY < height; sY++) {
-				pixels[(int) (sY * getHeight() + sX)] = color;
+        for (int sX = 0; sX < width; sX++) {
+            for (int sY = 0; sY < height; sY++) {
+                pixels[(int) ((y + sY) * getSourceWidth() + (sX + x))] = color;
 			}
 		}
 
@@ -1534,6 +1537,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		
 
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glFinish();
 
 		ByteBuffer buffer = BufferUtils.createByteBuffer(target_width * target_height * DEFAULT_BPP);
 		glPixelStorei(GL_PACK_ALIGNMENT, 1); // set alignment of data in memory (this time pack alignment; a good thing to do before glReadPixels)
@@ -1557,15 +1561,17 @@ public class DrawMap extends TextureConstruct implements Renderable {
 	}
 
 	public DrawMap setRenderImage(int x, int y, int img_width, int img_height, int target_x, int target_y, int target_width, int target_height) {
+        this.buffer_changed = true;
+        this.buffer_created = false;
 		create();
-
+        getBuffer().rewind();
+//		ImageLoader.DEBUGBUFFER(20, 20, target_width, getBuffer());
 		int textureId = getID();
 
 		if (textureId <= 0) {
 			System.err.println("Fehler: saveRenderImage abgebrochen, da Textur-ID ungültig: " + textureId);
 			return null;
 		}
-
 		setSize(img_width, img_height);
 		setPosition(x, y);
 
@@ -1581,13 +1587,17 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		glBindTexture(GL_TEXTURE_2D, getID());
 
 //		SHADER.loadTransformationMatrix(translatePosition(), translateBounds(), rotation, flipX, flipY);
-        SHADER.loadTransformation((int) getX(), (int) getY(), (int) getWidth(), (int) getHeight(), rotation.getZ(), 1f, flipX, flipY);
-		if (overlayColor != null)
-			SHADER.load2DColor(overlayColor.toColor(), overlayColorIntensity);
+        SHADER.loadTransformation((int) getX(), (int) getY(), (int) getSourceWidth(), (int) getSourceHeight(), rotation.getZ(), 1f, flipX, flipY);
+//		if (overlayColor != null)
+        SHADER.load2DColor(ColorPreset.RED.toColor(), 0.5f);
 
 
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glFlush();
+        glFinish(); // Warten, bis die GPU wirklich fertig ist
 
+        // 7. LESEN (Vom BACK-Buffer, aber sicherheitshalber explizit)
+        glReadBuffer(GL_BACK);
 		ByteBuffer buffer = BufferUtils.createByteBuffer(target_width * target_height * DEFAULT_BPP);
 		glPixelStorei(GL_PACK_ALIGNMENT, 1); // set alignment of data in memory (this time pack alignment; a good thing to do before glReadPixels)
 		glReadPixels(target_x, target_y, target_width, target_height, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
@@ -1676,27 +1686,28 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		glDisableVertexAttribArray(1);
 		glBindVertexArray(0);			
 	}
-	
+
 
 	@Override
-	public void renderManual(List<Vector4> positions, TextureShader shader) {
+    public void renderManual(FloatBuffer buffer, int startOffset, int spriteCount, TextureShader shader) {
 		if(!QUAD.isCreated()) QUAD.create();
 		if(!SHADER.isCreated())  SHADER.create();
 
-		create();
+        if (spriteCount <= 0) return;
 
 		// 1. Einmal binden für alle Instanzen dieser Textur
 		glBindTexture(GL_TEXTURE_2D, getID());
 
-		// 2. Farbe einmal setzen (sofern sie für alle Instanzen gleich ist)
-		if(overlayColor != null)
-			shader.load2DColor(overlayColor.toColor(), overlayColorIntensity);
+        buffer.position(startOffset);
 
-		for(Vector4 bound : positions) {
-			// Nur die Matrix muss sich pro Objekt ändern
-            SHADER.loadTransformation((int) bound.getX(), (int) bound.getY(), (int) bound.getWidth(), (int) bound.getHeight(), rotation.getZ(), scale, flipX, flipY);
+        int prevLimit = buffer.limit();
+        buffer.limit(startOffset + (spriteCount *
+                InstanceBuffer.FLOATS_PER_INSTANCE));
+        glBindBuffer(GL_ARRAY_BUFFER, InstanceBuffer.getVboId());
+        glBufferSubData(GL_ARRAY_BUFFER, 0, buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        buffer.limit(prevLimit);
+        glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, spriteCount);
+    }
 
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		}
-	}
 }

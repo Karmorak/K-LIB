@@ -7,7 +7,7 @@ import java.util.Map;
 
 import com.karmorak.lib.engine.graphic.MasterRenderer;
 import com.karmorak.lib.engine.graphic.roomy.Mesh;
-import com.karmorak.lib.engine.graphic.roomy.shaders.ObjectShader;
+import com.karmorak.lib.engine.graphic.shaders.ObjectShader;
 import com.karmorak.lib.engine.objects.OBJECT;
 
 

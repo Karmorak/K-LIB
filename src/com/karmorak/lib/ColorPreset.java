@@ -1,5 +1,8 @@
 package com.karmorak.lib;
 
+import com.karmorak.lib.math.Vector3;
+import com.karmorak.lib.math.Vector4;
+
 public enum ColorPreset implements Colorable {
     BLACK(0, 0, 0, 255),
     WHITE(255, 255, 255),
@@ -16,6 +19,13 @@ public enum ColorPreset implements Colorable {
     GRAY(130, 130, 130),
     DARK_GRAY(70, 70, 70),
     NEUTRAL(1, 1, 1),
+
+    BACKGROUND_DARK(25, 26, 28),
+    ACCENT_DARK(38, 40, 42),
+    TEXTBOX_DARK(50, 52, 56),
+    FONT_DARK(240, 241, 242),
+
+
     ALPHA(0, 0, 0, 0);
 
     public final int R, G ,B, A;
@@ -63,6 +73,16 @@ public enum ColorPreset implements Colorable {
     @Override
     public int toInt() {
         return code; //RGBA
+    }
+
+    @Override
+    public Vector3 Vec3f() {
+        return new Vector3(R / 255f, G / 255f, B / 255f);
+    }
+
+    @Override
+    public Vector4 Vec4f() {
+        return new Vector4(R / 255f, G / 255f, B / 255f, A / 255f);
     }
 
     @Override

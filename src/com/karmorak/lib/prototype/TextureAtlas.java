@@ -42,8 +42,8 @@ public class TextureAtlas {
 			} catch (MalformedURLException e) {
 				e.printStackTrace();
 			}
-			
-			ArrayList<String> lines = FileUtils.readFiletoArray(data);
+
+            ArrayList<String> lines = FileUtils.readFile(data);
 			for (int i = 0; i < lines.size(); i++) {
 				String line = lines.get(i);
 				

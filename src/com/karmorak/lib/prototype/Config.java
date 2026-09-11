@@ -9,7 +9,7 @@ import com.karmorak.lib.utils.file.FileUtils;
 
 public class Config {
 
-	//TODO config could use the caching instead of ever time rescan the file, implement as opional parameter
+    //TODO config could use the caching instead of every time rescan the file, implement as optional parameter
 	
 	private final String PATH;
 	private final File FILE;
@@ -25,7 +25,7 @@ public class Config {
 	}
 	
 	public ArrayList<String> readConfig() {
-		return file_contents = FileUtils.readFiletoArray(new File(PATH));
+        return file_contents = FileUtils.readFile(new File(PATH));
 	}
 	
 	
@@ -48,7 +48,7 @@ public class Config {
 		for (int i = 0; i < file_contents.size(); i++) {			
 			if(file_contents.get(i).startsWith(name)) {				
 				String content = file_contents.get(i).replaceFirst(name + ": ", "");
-				if(content == null || content.equals(""))
+                if (content == null || content.isEmpty())
 					return false;
 				return true;				
 			}
@@ -99,12 +99,12 @@ public class Config {
 	public String getValue(String name, String def_value) {
 			
 		readConfig();
-		
-		for (int i = 0; i < file_contents.size(); i++) {			
-			if(file_contents.get(i).startsWith(name)) {
-				return file_contents.get(i).replaceFirst(name + ": ", "");
-			}		
-		}
+
+        for (String fileContent : file_contents) {
+            if (fileContent.startsWith(name)) {
+                return fileContent.replaceFirst(name + ": ", "");
+            }
+        }
 		setValue(name, def_value);		
 		return def_value;
 	}

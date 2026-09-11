@@ -176,11 +176,6 @@ public abstract class GSM {
 			states.get(currentstate).mouseMoved(screenX, screenY);
 		return currentstate;	
 	}
-	public static short scrolled(double amount) {
-		if(!states.isEmpty())
-			states.get(currentstate).scrolled(amount);
-		return currentstate;	
-	}
 
     public static short scrolled(double amount_X, double amount_Y) {
         if (!states.isEmpty())

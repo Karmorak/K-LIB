@@ -31,7 +31,7 @@ public class OwnFont {
 	 *  - added new font attributes
 	 *  - font can now take just the raw fontData
 	 *  - OwnFont can now be saved in the KLIB library path
-	 *  - you can now get a Array of Files with all of the windows fonts
+     *  - you can now get a Array of Files with all the windows fonts
 	 *  - you can now load a font from  whether a direct path or the font name 
 	 * v.1.5.0
 	 *  - reworked in order to use special chars

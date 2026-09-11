@@ -4,7 +4,7 @@ import static org.lwjgl.opengl.GL46.*;
 
 import java.util.List;
 import com.karmorak.lib.Running;
-import com.karmorak.lib.engine.graphic.roomy.shaders.TerrainShader;
+import com.karmorak.lib.engine.graphic.shaders.TerrainShader;
 import com.karmorak.lib.engine.terrain.Terrain;
 import com.karmorak.lib.engine.terrain.TerrainTexturePack;
 import com.karmorak.lib.math.Vector3;

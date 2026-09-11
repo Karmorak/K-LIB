@@ -13,16 +13,19 @@ import com.karmorak.lib.font.Text;
 import com.karmorak.lib.gamestate.GSM;
 import com.karmorak.lib.font.OwnFont.FontFilePathHandle;
 import com.karmorak.lib.font.Text.Text_Align;
+import com.karmorak.lib.gamestate.StateManager;
 import com.karmorak.lib.math.Vector2;
 import com.karmorak.lib.math.Vector4;
+import com.karmorak.lib.prototype.Boxable;
+import com.karmorak.lib.prototype.UI_Element;
 import com.karmorak.lib.ui.button.events.ButtonEvent;
 import com.karmorak.lib.ui.button.events.Button_onKey_Events;
 import com.karmorak.lib.ui.button.events.Button_onTouchDown_Event;
 
-public class Button implements Comparable<Button> {
+public class Button implements Comparable<Button>, UI_Element {
 	
 	private static final String FONT_PATH = "/com/karmorak/lib/assets/fonts/";
-	
+
 	private static final FontFilePathHandle handle = new FontFilePathHandle(KLIB.URL(FONT_PATH + "font.png"), KLIB.URL(FONT_PATH + "font.txt"));	
 	public static final FontFilePathHandle thick_handle = new FontFilePathHandle(KLIB.URL(FONT_PATH + "font_thick.png"), KLIB.URL(FONT_PATH + "font_thick.txt"));	
 	public	static final FontFilePathHandle georgia_bold = new FontFilePathHandle(KLIB.URL(FONT_PATH + "font_georgia_bold.png"), KLIB.URL(FONT_PATH + "font_georgia_bold.txt"));
@@ -101,8 +104,6 @@ public static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toC
 	 */
 	
 	//TODO 1.8.0 die neue bounding methoden für text einbinden; update dispose method
-	//Background fixen
-	//TODO
 	// button zumbeispiel ab der hälfte der pixel nicht mehr zeichnen (y achse)
 	
 	protected static boolean ISDEFFONTTHICK = false;
@@ -150,11 +151,11 @@ public static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toC
 			list.add(this);
 			assignID();
 		}
-        associated_state = GSM.getStateInt();
+		associated_state = StateManager.getStateInt();
 
         originColor = defColor;
-		hoverColor = Color.RED();
-		selectColor = Color.CYAN();
+		hoverColor = ColorPreset.RED.toColor();
+		selectColor = ColorPreset.CYAN.toColor();
 				
 		old_name = new String[] {"Button" + ID};	
 		hoverText = "";
@@ -180,6 +181,10 @@ public static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toC
 	
 	public Button (String name, OwnFont font) {
 		this(new String[] {name}, new Vector2(0, KLIB.graphic.Height() * 0.5f), 1f, font, defColor);
+	}
+
+	public Button(String name, OwnFont font, Colorable color) {
+		this(new String[]{name}, new Vector2(0, KLIB.graphic.Height() * 0.5f), 1f, font, color);
 	}
 	
 	public Button (String name, Colorable c) {
@@ -230,7 +235,7 @@ public static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toC
 		list.add(this);	
 
 		assignID();
-		associated_state = GSM.getStateInt();
+		associated_state = StateManager.getStateInt();
 
 		originColor = defColor;
 		hoverColor = ColorPreset.RED.toColor();
@@ -351,27 +356,45 @@ public static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toC
 			getBackground().getBGBounds();
 		return this;
 	}
-	
-	public void setX(float x) {
+
+	public Button setX(float x) {
 		text.setX((int) x);
 
         for (Hang h : hangs) {
             h.setRelPosition(h.getRelPosition().getX(), h.getRelPosition().getY());
         }
+		return this;
 	}
-	
-	public void setY(float y) {
+
+	public Button setY(float y) {
 		text.setY((int) y);
 
         for (Hang h : hangs) {
             h.setRelPosition(h.getRelPosition().getX(), h.getRelPosition().getY());
         }
+		return this;
 	}
 	
 	public Button setPosition(Vector2 pos) {		
 		return setPosition(pos.getX(), pos.getY());
 	}
-	
+
+	@Override
+	public Button setSize(float width, float height) {
+		text.setHeight((int) height);
+		if (text.getMaxWidth() > width)
+			text.setWidth((int) width);
+		return this;
+	}
+
+	@Override
+	public Button setSize(Vector2 boundaries) {
+		text.setHeight((int) boundaries.getHeight());
+		if (text.getMaxWidth() > boundaries.getWidth())
+			text.setWidth((int) boundaries.getWidth());
+		return this;
+	}
+
 	public Button setPosition(float x, float y) {
 		text.setPosition(x, y);
 
@@ -393,6 +416,12 @@ public static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toC
 	public Vector2 getPosition() {		
 		return text.getTotalPosition();
 	}
+
+	@Override
+	public Vector2 getSize() {
+		return null;
+	}
+
 	public Vector2 getTotalPosition() {
 		return text.getTotalPosition();
 	}
@@ -666,6 +695,16 @@ public static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toC
 		return this;
 	}
 
+	public Button setWidth(float width) {
+		text.setWidth((int) width);
+		return this;
+	}
+
+	public Button setWidth(int width) {
+		text.setWidth(width);
+		return this;
+	}
+
 	public Button setTotalHeight(float height) {
 		text.setTotalHeight((int) height);
 		return this;
@@ -710,7 +749,15 @@ public static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toC
 //		}
 //
 //	}
-	
+
+	public boolean isOverlapping() {
+		return text.isOverlapping();
+	}
+
+	public void doOverlapDots(boolean doIt) {
+		text.doOverlapDots(doIt);
+	}
+
 	public String getoldName() {
 		return old_name[0];
 	}
@@ -918,9 +965,9 @@ public static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toC
 		}
 		return -1;		
 	}
-	
+
 	protected boolean isColliding() {
-		
+
 		float mouse_x = Input.mouse.getX();
 		float mouse_y = Input.mouse.getY();
 
@@ -962,19 +1009,19 @@ public static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toC
 		if(buttons == null) return null;
 
 		if(!option_check_gamestate) {
-				for (Button c : buttons) {
-					if(c.show) {
-						if(c.isColliding())
-							return c;
-					}
+			for (Button c : buttons) {
+				if (c.show) {
+					if (c.isColliding())
+						return c;
 				}
+			}
 		} else {
-				for (Button c : buttons) {
-					if(c.show && GSM.getStateInt() == c.associated_state) {
-						if(c.isColliding())
-							return c;
-					}
+			for (Button c : buttons) {
+				if (c.show && StateManager.getStateInt() == c.associated_state) {
+					if (c.isColliding())
+						return c;
 				}
+			}
 		}
 		return null;
 	}
@@ -1035,8 +1082,8 @@ public static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toC
 					text.setColor(originColor);			
 				
 				if(buttonBackground != null && buttonBackground.bg_show)
-					renderer.processTexture(buttonBackground.texture, buttonBackground.getBGPosition(), buttonBackground.getBGBounds(), layer);
-				
+					renderer.process(buttonBackground.texture, buttonBackground.getBGPosition(), buttonBackground.getBGBounds(), layer);
+
 				text.draw(renderer, layer);		
 //				was_drawn = true;
 
@@ -1061,7 +1108,7 @@ public static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toC
 					text.setColor(originColor);			
 				
 				if(buttonBackground != null && buttonBackground.bg_show)
-					renderer.processTexture(buttonBackground.texture, buttonBackground.getBGPosition(), buttonBackground.getBGBounds(), layer);
+					renderer.process(buttonBackground.texture, buttonBackground.getBGPosition(), buttonBackground.getBGBounds(), layer);
 				
 				text.draw(renderer, x, y, layer);				
 
@@ -1092,7 +1139,7 @@ public static final OwnFont DEF_FONT = new OwnFont(handle, ColorPreset.WHITE.toC
 	
 	
 	public static void touchDown(int screenX, int screenY, int pointer, int button) {
-		
+		if (!StateManager.isInit()) return;
 		Button b = getCollidingButton(list);
 		if(b == null) {
 			hovered_Button = null;

@@ -134,8 +134,12 @@ public abstract class StateManager {
         if (currentstate != -1 && inits[currentstate])
             states.get(currentstate).changeState(state);
         currentstate = state;
-        if (!inits[state])
+        if (!inits[state]) {
             init(state);
+            skipUpdate();
+            skipDraw();
+        }
+
     }
 
     public static void changeState(int state) {

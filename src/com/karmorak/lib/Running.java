@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import com.github.kwhat.jnativehook.GlobalScreen;
 import com.karmorak.lib.engine.graphic.GLTaskQueue;
 import com.karmorak.lib.engine.graphic.MasterRenderer;
-import com.karmorak.lib.gamestate.GSM;
 import com.karmorak.lib.gamestate.StateManager;
 import org.lwjgl.glfw.GLFW;
 
@@ -25,6 +24,7 @@ public abstract class Running implements Runnable {
 	private final ArrayList<Window> windows;
 	public Camera camera;
 	private MasterRenderer renderer;
+    @Deprecated
 	public static boolean use_GlobalRenderer = false;
 	
 	public Running() {
@@ -62,7 +62,6 @@ public abstract class Running implements Runnable {
 		}
 		if (renderer != null) {
 			this.renderer = renderer;
-			use_GlobalRenderer = true;
 		}
 		thread.start();
 	}
@@ -71,14 +70,8 @@ public abstract class Running implements Runnable {
 
 	public abstract void update(double delta);
 
-	@Deprecated
-	/** replace by the other, and hand over a masterrenderer*/
-	public abstract void render();
+    public abstract void render(MasterRenderer renderer);
 
-	public void render(MasterRenderer renderer) {
-	}
-
-	;
 	
 	@Override
 	public void run() {
@@ -95,24 +88,27 @@ public abstract class Running implements Runnable {
 				window.init();
 				System.out.println("Screen: " + window.getVidmode().width() + " x " + window.getVidmode().height() + " -> " + (int) window.getBounds().getWidth() + " x " + (int) window.getBounds().getHeight());
 			}
+            System.out.println("w5-1");
 			//----init fertig----
-			if (use_GlobalRenderer) {
-				if (renderer == null) {
-					renderer = new MasterRenderer();
-				}
-				renderer.create();
-			}
+            if (renderer == null) {
+                renderer = new MasterRenderer();
+            }
+            System.out.println("w5-2");
+            renderer.create();
 
+            System.out.println("w5-3");
 			init();
+            System.out.println("w5-4");
 			while(!thread.isInterrupted()) {
 				GLTaskQueue.executeAll();
 				Input.addFrame();
 				Input.resetInput();
 				for (Window window : windows) window.update();
 				update(Window.getDelta());
-				if (use_GlobalRenderer) render(renderer);
-				else render();
-				if (use_GlobalRenderer) renderer.render(this);
+
+                render(renderer);
+                renderer.renderBatch(this);
+
 				int error = glGetError();
 				if (error != GL_NO_ERROR)
 					System.err.println("OpenGL Error detektiert: " + error);
@@ -149,8 +145,8 @@ public abstract class Running implements Runnable {
 	}
 	
 	public void close() {
-		GSM.destroy();
 		StateManager.destroy();
+        KLIB.dispose();
 		for (Window window : windows) {
 			window.destroy();
 		}
@@ -175,17 +171,16 @@ public abstract class Running implements Runnable {
 			}
 		} catch (Exception _) {
 		}
-
+        System.out.println("Shutdown...");
 		System.exit(0);
 	}
 	
 	public void close(Window window) {
-			
 		window.destroy();			
-		windows.remove(window);	
-		
-//		thread.interrupt();
-//		thread.stop();
+		windows.remove(window);
+        close();
+        System.out.println("Shutdown win ...");
+        System.exit(0);
 	}
 
 	public MasterRenderer Renderer() {

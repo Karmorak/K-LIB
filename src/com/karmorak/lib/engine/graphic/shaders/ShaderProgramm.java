@@ -1,4 +1,4 @@
-package com.karmorak.lib.engine.graphic.roomy.shaders;
+package com.karmorak.lib.engine.graphic.shaders;
 
 import static org.lwjgl.opengl.GL20.glDeleteProgram;
 import static org.lwjgl.opengl.GL20.glDeleteShader;
@@ -15,6 +15,7 @@ import static org.lwjgl.opengl.GL20.glUseProgram;
 import java.net.URL;
 import java.nio.FloatBuffer;
 
+import com.karmorak.lib.ColorPreset;
 import org.lwjgl.system.MemoryUtil;
 
 import com.karmorak.lib.math.Matrix4;

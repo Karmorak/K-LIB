@@ -17,7 +17,10 @@ import com.github.kwhat.jnativehook.NativeHookException;
 import com.karmorak.lib.KLIB.system.SPI;
 import com.karmorak.lib.engine.graphic.MasterRenderer;
 import com.karmorak.lib.engine.graphic.flat.DrawMap;
+import com.karmorak.lib.engine.graphic.flat.Texture;
+import com.karmorak.lib.font.Text;
 import com.karmorak.lib.prototype.Config;
+import com.karmorak.lib.ui.button.Button;
 import com.karmorak.lib.utils.GraphicUtils;
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.WinDef.UINT_PTR;
@@ -32,11 +35,11 @@ public class KLIB {
 // 		[X] entgültig die letzten k-api funktionen in k-lib reinhauen
 //	 	[X] input kann nur Vertical scrollen
 //	 	[X] texture filter einstellbar machen
-//	 	[ ] StatusBar.setAlpha ist Buggy
+//	 	[X] StatusBar.setAlpha ist Buggy
 //	 	[ ] ownFont von einer bitmap font konvertieren
-//	 	[ ] Button tooltips
+//	 	[X] Button tooltips
 //	 	[ ] ganze ordner von A nach B kopieren
-//	 	[ ] Button.Background
+//	 	[ ] Button.Background fixen oder entfernen
 //		[ ] click reaktion also wenn mann klickt das der button nur kurz die farbe/größe ändert
 //	 	[ ] text max width eine  option hinzufügen das die linie nach unten weitergeführt wird
 //		[ ] text new line und tab (/n und /t) gängig mache
@@ -44,15 +47,17 @@ public class KLIB {
 //				solange ich nur ein Window nutze ist das aber nicht so schlimm.
 //		[ ] es gibt FileUtils und FileManager beide vereinen ...weniger verwirrung
 //		[ ] add LanguageLoader System
-//		[ ] add ability to skip Frames/Updates and to call init again as long it doesn't return true in StateManager
+//		[X] add ability to skip Frames/Updates and to call init again as long it doesn't return true in StateManager
 //		[ ] make the textures for Scrollable and Textable static if want to use custom texture it should get loaded so afterwise
-	//textable ohne hintergrund
-	// scrollable zu regler machen(funktion)
+	//  [ ] textable ohne hintergrund
+	//	[X] Textable größe änderbar machen
+	// 	[ ] scrollable zu regler machen(funktion)
+	//  [ ] StatusBar modernisieren
 
 
-	public static final String VERSION = "1.1.0";
-	public static final int RELEASE = 31;
-	public static final String DATE = "06.03.2026";
+	public static final String VERSION = "1.3.0";
+	public static final int RELEASE = 33;
+	public static final String DATE = "11.09.2026";
 	/** 0 = off, 1 = on*/
 	public static int DEBUG_LEVEL;
 	private static boolean isINIT = false;
@@ -65,10 +70,12 @@ public class KLIB {
 			
 	public static final String[] VERSION_HISTORY = {"01", "02", "03", "0.4.0", "0.4.1", "0.4.2", "0.4.3", "0.5.0", "0.6.0", "0.6.1", "0.7.0", "0.7.1", "0.7.2", "0.7.3", "0.7.4",
 													"0.7.5", "0.7.6", "0.8.0", "0.8.0.1", "0.8.0.2", "0.8.0.3", "0.8.1", "0.8.2", "pre1 0.9.0", "pre2 0.9.0", "pre3 0.9.0", "0.9.0", "0.9.1", "0.9.2",
-			"1.0.0", "1.1.0"};
+			"1.0.0", "1.1.0", "1.1.1", "1.2.0"};
 	
 	public static String APP_NAME;
 	public static String APP_VERSION;
+
+	private static Texture loadingSpinner;
 
 	public static void START(Running run, String title) {
 		START(run, new Window(title), REQ_VERSION);
@@ -94,7 +101,7 @@ public class KLIB {
 
 	public static void START(Running run, WindowOptions options, int req_lib_version, MasterRenderer renderer) {
 		if (options != null) {
-			INIT(req_lib_version, WindowOptions.app_title, WindowOptions.app_version);
+			INIT(req_lib_version, options.window_title, WindowOptions.app_version);
 			run.start(new Window(options), renderer);
 		} else {
 			INIT(req_lib_version, "LWJGL App", "");
@@ -170,12 +177,127 @@ public class KLIB {
 
 			requireVersion(version);
 
-			TEMP_DATA = new Config(lib.LIB_TEMP_PATH() + "tmp.txt");
+//			TEMP_DATA = new Config(lib.LIB_TEMP_PATH() + "tmp.txt");
+
+
+
 
 			isINIT = true;
 		}
 	}
 
+	private static AnimationThread thread;
+	private static boolean isLoading;
+
+	private static class AnimationThread implements Runnable {
+
+		boolean isActive = false;
+		static final float speed = -48f;
+
+		@Override
+		public void run() {
+			isActive = true;
+			float currentAngle = 0;
+			float lastTime = System.nanoTime() / 1E9f;
+
+			while (isActive) {
+				float currentTime = System.nanoTime() / 1E9f;
+				float deltaTime = currentTime - lastTime;
+
+				float deltaAngle = (float) (deltaTime * (speed * 2.0f * Math.PI));
+				currentAngle += deltaAngle;
+
+				if (currentAngle >= (float) (Math.PI * 2.0f)) {
+					currentAngle -= (float) (Math.PI * 2.0f);
+				}
+				loadingSpinner.setRotation(currentAngle);
+				lastTime = currentTime;
+
+//				loadingSpinner.render();
+			}
+		}
+	}
+
+	public static void startLoading() {
+		if (!isLoading) {
+			if (loadingSpinner == null) {
+				loadingSpinner = new Texture(KLIB.URL(KLIB.lib.ASSET_PATH + "ui/loading.png"));
+				loadingSpinner.setSize(16, 16);
+			}
+			if (thread == null) {
+				thread = new AnimationThread();
+			}
+			if (!thread.isActive)
+				Thread.startVirtualThread(thread);
+		}
+		isLoading = true;
+	}
+
+	public static void stopLoading() {
+		if (isLoading) {
+			if (thread != null) {
+				thread.isActive = false;
+			}
+		}
+		isLoading = false;
+	}
+
+	static Text t;
+	static Texture text_background;
+	static boolean showTextbox = false;
+
+
+	public static void enableTextbox(String Test) {
+		if (t == null) {
+			t = new Text(Button.DEF_FONT, Test);
+			t.setHeight(11);
+			t.setColor(ColorPreset.FONT_DARK);
+			text_background = new Texture(2, 2, ColorPreset.TEXTBOX_DARK);
+		} else
+			t.setName(Test);
+		showTextbox = true;
+	}
+
+	public static void disableTextbox() {
+		showTextbox = false;
+	}
+
+	public static void drawSpinner(MasterRenderer renderer) {
+		if (loadingSpinner != null && isLoading) {
+			renderer.process(loadingSpinner, (int) Input.mouse.getX() + 15, (int) Input.mouse.getY() - 24, 4);
+		}
+	}
+
+	public static void drawTextbox(MasterRenderer renderer) {
+		if (showTextbox) {
+			float width = t.getWidth();
+
+			if (Input.mouse.getX() + width < graphic.getWidth()) {
+				t.setPosition(Input.mouse.getX() + 2, (int) Input.mouse.getY() - 34);
+				t.draw(renderer, 5);
+				renderer.process(text_background, (int) Input.mouse.getX(), (int) Input.mouse.getY() - 36, (int) t.getWidth() + 6, 15, 4);
+			} else {
+				t.setPosition(Input.mouse.getX() + 2 - width, (int) Input.mouse.getY() - 34);
+				t.draw(renderer, 5);
+				renderer.process(text_background, (int) (Input.mouse.getX() - width), (int) Input.mouse.getY() - 36, (int) t.getWidth() + 6, 15, 4);
+			}
+		}
+	}
+
+	public static void dispose() {
+		if (thread != null) {
+			thread.isActive = false;
+		}
+		if (loadingSpinner != null) {
+			loadingSpinner.destroy();
+		}
+		if (text_background != null) {
+			text_background.destroy();
+		}
+		if (t != null) {
+			Text.destroy();
+		}
+	}
 
 	public static class system {
 		
@@ -185,8 +307,7 @@ public class KLIB {
 	        long SPI_SETDESKWALLPAPER = 20;
 	        long SPIF_UPDATEINIFILE = 0x01;
 	        long SPIF_SENDWININICHANGE = 0x02;
-	       
-	        
+
 	        @SuppressWarnings({"deprecation" })
 	        SPI INSTANCE = (SPI) Native.loadLibrary("user32", SPI.class,
 	                new HashMap<String, Object>() {
@@ -195,8 +316,7 @@ public class KLIB {
 	                        put(OPTION_FUNCTION_MAPPER, W32APIFunctionMapper.UNICODE);
 	                    }
 	                });
-	        
-	        
+
 	        boolean SystemParametersInfo(UINT_PTR uiAction, UINT_PTR uiParam, String pvParam, UINT_PTR fWinIni);
 	    }
 
@@ -219,7 +339,7 @@ public class KLIB {
 	    }
 
 		public static String Time(String pattern) {
-			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm:ss");
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern(pattern);
 			LocalDateTime now = LocalDateTime.now();
 
 			return dtf.format(now);
@@ -297,7 +417,7 @@ public class KLIB {
             return System.getProperty("user.home") + "\\Saved Games\\";
 		}
 		public static String UserPath() {
-			return System.getProperty("user.home");
+			return System.getProperty("user.home") + "\\";
 		}
 		public static String DocumentsPath() {
 			return System.getProperty("user.home") + "\\Documents\\";

@@ -1,4 +1,4 @@
-package com.karmorak.lib.engine.graphic.roomy.shaders;
+package com.karmorak.lib.engine.graphic.shaders;
 
 import static org.lwjgl.opengl.GL46.*;
 import com.karmorak.lib.engine.objects.Camera;

@@ -27,7 +27,10 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 
 import com.karmorak.lib.Colorable;
+import com.karmorak.lib.engine.graphic.Renderable;
 import com.karmorak.lib.engine.io.images.ImageLoader;
+import com.karmorak.lib.prototype.Boxable;
+import com.karmorak.lib.prototype.Collideable;
 import org.lwjgl.BufferUtils;
 
 import com.karmorak.lib.Color;
@@ -39,12 +42,10 @@ import com.karmorak.lib.utils.PNGDecoder;
 import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
 
-public abstract class TextureConstruct {
+public abstract class TextureConstruct extends Collideable {
 		
 
 	protected float scale;
-	protected Vector2 pos;
-	protected Vector2 size;
 	protected Vector3 rotation;
 	protected boolean flipX;
 	protected boolean flipY;
@@ -262,6 +263,35 @@ public abstract class TextureConstruct {
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
+	public static void bindCharTexture(int id, int width, int height, ByteBuffer buffer) {
+		if (id <= 0) {
+			System.err.println("Abbruch: bindTexture mit ungültiger ID aufgerufen.");
+			return;
+		}
+
+		glBindTexture(GL_TEXTURE_2D, id);
+
+		// Safety: Tell GL to read every single byte without skipping
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		if (buffer != null) {
+			buffer.rewind(); // Just in case
+			// UPLOAD FIRST
+			if (buffer.remaining() < width * height * 4) {
+				throw new RuntimeException("Buffer zu klein für Textur-Upload! Erwartet: " + (width * height * 4));
+			}
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+		}
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
+
 	static TextureData DrawMapToData(DrawMap map) {
 		int id = generateTextureID();
 		map.create();
@@ -310,58 +340,7 @@ public abstract class TextureConstruct {
 	
 	public abstract void destroy();
 
-	public Vector2 getPosition() {		
-		return pos;		
-	}
-	
-	public float getX() {
-		return pos.getX();
-	}
-	
-	public float getY() {
-		return pos.getY();
-	}
-	
-	public void setPosition(Vector2 pos) {
-		this.pos = new Vector2(pos.getX(), pos.getY());
-	}
-	
-	public void setPosition(float x, float y) {
-		this.pos = new Vector2(x, y);
-	}
-	
-	public void setX(float x) {
-		setPosition(x, getPosition().getY());
-	}
-	
-	public void setY(float y) {
-		setPosition(getPosition().getX(), y);
-	}
 
-	public Vector2 getSourceSize() {
-		return new Vector2(getSourceWidth(), getSourceHeight());
-	}
-
-	public Vector2 getSize() {
-		return size;
-	}
-	
-	public void setWidth(float width) {
-		this.size.setWidth(width);
-	}
-	
-	public void setHeight(float height) {
-		this.size.setHeight(height);
-	}
-	
-	public void setSize(Vector2 size) {
-		this.size = new Vector2(size.getWidth(), size.getHeight());
-	}
-
-	public void setSize(float width, float height) {
-		this.size = new Vector2(width, height);
-	}
-	
 	public void setScale(float scale) {
 		this.scale = scale;
 	}
@@ -369,7 +348,8 @@ public abstract class TextureConstruct {
 	public float getScale() {
 		return this.scale;
 	}
-	
+
+	@Override
 	public float getWidth() {
 		return size.getWidth() * getScale();
 	}
@@ -381,7 +361,8 @@ public abstract class TextureConstruct {
 	public int getSourceWidth() {
 		return getData().WIDTH;
 	}
-	
+
+	@Override
 	public float getHeight() {
 		return size.getHeight() * getScale();
 	}
@@ -404,7 +385,7 @@ public abstract class TextureConstruct {
 	
 	public void setBounds(float x, float y, float width, float height) {
 		setPosition(x, y);
-		setSize(width, height);
+		setSize((int) width, (int) height);
 	}
 	
 	public void setBounds(Vector2 pos, Vector2 size) {
@@ -414,7 +395,8 @@ public abstract class TextureConstruct {
 	public void setBounds(Vector4 bounds) {
 		setBounds(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
 	}
-	
+
+
 	public void setRotation(float rotation) {
 		this.rotation.setZ(rotation);
 	}
@@ -484,7 +466,7 @@ public abstract class TextureConstruct {
 	}
 	
 	public void setAlpha(int alpha) {
-		overlayColor.toColor().setAlpha(alpha);
+		overlayColor = overlayColor.toColor().setAlpha(alpha);
 	}
 		
 	public abstract TextureData getData();

@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 
 import javax.imageio.ImageIO;
 
+import com.karmorak.lib.Colorable;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.opengl.GL46;
@@ -34,10 +35,9 @@ public class GraphicUtils {
 	public static Texture colorize2Texture(URL grayscale, Color color, boolean negate) {		
 		return colorize2Texture(grayscale, color, 1f, 0, negate, false);
 	}
-	
-	public static Texture colorize2Texture(URL grayscale, Color color, float intensity, float alpha_tolerancy, boolean negate, boolean capcolours) {		
+
+    public static Texture colorize2Texture(URL grayscale, Colorable color, float intensity, float alpha_tolerancy, boolean negate, boolean capcolours) {
 		DrawMap pix2 = new DrawMap(grayscale);
-		
 		
 //		pixels[i] = data.getBuffer().getInt(4 * i);		
 			
@@ -51,15 +51,14 @@ public class GraphicUtils {
 					float b;
 		
 					if(negate) {
-						r = 255 - (c.getRed() * (color.getRed()*intensity))/255;
-						g = 255 - (c.getGreen() * (color.getGreen()*intensity))/255;
-						b = 255 - (c.getBlue() * (color.getBlue()*intensity))/255;
+                        r = 255 - (c.getRed() * (color.Red() * intensity)) / 255;
+                        g = 255 - (c.getGreen() * (color.Green() * intensity)) / 255;
+                        b = 255 - (c.getBlue() * (color.Blue() * intensity)) / 255;
 					} else {
-						r = (c.getRed() * (color.getRed()*intensity))/255;
-						g = (c.getGreen() * (color.getGreen()*intensity))/255;
-						b = (c.getBlue() * (color.getBlue()*intensity))/255;
-					}				
-		
+                        r = (c.getRed() * (color.Red() * intensity)) / 255;
+                        g = (c.getGreen() * (color.Green() * intensity)) / 255;
+                        b = (c.getBlue() * (color.Blue() * intensity)) / 255;
+                    }
 					
 					if(capcolours) {
 						if(r >255) r = 255;
@@ -70,15 +69,14 @@ public class GraphicUtils {
 					pix2.drawPixel(x, y, new Color(r, g, b, 255));
 				} 
 			}
-		}	
-		pix2.create();
+        }
 		Texture out = new Texture(pix2);
 		pix2.destroy();
 		return out;
 	}
-	
-	
-	public static int[] colorize(int[] pixels, Color color, float intensity, float alpha_tolerancy, boolean negate, boolean capcolours) {		
+
+
+    public static int[] colorize(int[] pixels, Color color, float intensity, float alpha_tolerancy, boolean negate, boolean capcolours) {
 		int[] out = new int[pixels.length];
 		
 		for (int p = 0; p < pixels.length; p++) {

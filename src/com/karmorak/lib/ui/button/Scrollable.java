@@ -270,7 +270,7 @@ public class Scrollable extends Button {
 		return background_bounds.getHeight();
 	}
 
-	public void setSize(float length, float thickness) {
+    public Scrollable setSize(float length, float thickness) {
 		if (IS_VERTICAL) {
 			background_bounds.setSize(thickness, length);
 			slider_bounds_2.setSize((int) thickness, length * slider_size);
@@ -283,6 +283,7 @@ public class Scrollable extends Button {
 		updateBackgroundSize();
 		updateScale();
 		updateBackgroundPosition();
+        return this;
 	}
 
 	public void setThickness(float thickness) {
@@ -496,15 +497,17 @@ public class Scrollable extends Button {
 	}
 
 	@Override
-	public void setX(float x) {
+    public Scrollable setX(float x) {
 		background_bounds.setX(x);
 		updateBackgroundPosition();
+        return this;
 	}
 	
 	@Override
-	public void setY(float y) {
+    public Scrollable setY(float y) {
 		background_bounds.setY(y);
 		updateBackgroundPosition();
+        return this;
 	}
 	
 	@Override

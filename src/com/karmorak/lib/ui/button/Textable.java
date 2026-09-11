@@ -9,16 +9,22 @@ import com.karmorak.lib.engine.graphic.flat.Texture;
 import com.karmorak.lib.font.Text;
 import com.karmorak.lib.math.Vector2;
 import com.karmorak.lib.math.Vector2i;
+import com.karmorak.lib.math.Vector4i;
+import com.karmorak.lib.prototype.Boxable;
 import com.karmorak.lib.ui.button.events.Button_onKey_Events;
 import com.karmorak.lib.ui.button.events.Button_onTouchDown_Event;
 import org.lwjgl.glfw.GLFW;
 
 public class Textable extends Button implements Button_onTouchDown_Event, Button_onKey_Events {
 
+    private static Texture DEF_OUTLINE_TEXTURE, DEF_HIGHLIGHT_TEXTURE, DEF_MARKED_TEXTURE;
 
-    private final Texture outline;
-    private final Texture highlighted;
-    private final Texture marked;
+
+    private final Texture outline_t, highlighted_t, marked_t;
+
+    private float scale = 1f;
+    private Vector4i boundary;
+    private Vector4i marked_boundary;
 
     private String display_name;
     private final Hang cursor;
@@ -36,36 +42,47 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
     private static final long DOUBLE_CLICK_DELAY = 300;
     boolean marked_b = false;
 
+    static Textable current_selected;
+
     public Textable(Vector2i box_size) {
         super(true);
-
-        setName("|");
-        setSelectable(true);
-        Option_SelectableOptions(false, false);
 
         line_thickness = 2;
         text_scale = 0.8f;
         text_pos_y = 0.4f;
 
-        DrawMap map = new DrawMap(box_size, ColorPreset.LIGHT_GRAY.toColor().setAlpha(175));
-        map.drawOutline(ColorPreset.BLACK,line_thickness);
-        outline = new Texture(map);
-        outline.setPosition(getPosition());
-        map.fill(ColorPreset.WHITE.toColor().setAlpha(175));
-        map.drawOutline(ColorPreset.ALPHA, line_thickness);
-        highlighted = new Texture(map);
-        map.destroy();
+        if (DEF_OUTLINE_TEXTURE == null) {
 
-        map = new DrawMap(2,2);
-        map.fill(ColorPreset.LIGHT_BLUE.toColor().setAlpha(100));
-        marked = new Texture(map);
-        map.destroy();
+            DrawMap map = new DrawMap(box_size, ColorPreset.LIGHT_GRAY.toColor().setAlpha(175));
+            map.drawOutline(ColorPreset.BLACK, line_thickness);
+            DEF_OUTLINE_TEXTURE = new Texture(map);
+
+            map.fill(ColorPreset.WHITE.toColor().setAlpha(175));
+            map.drawOutline(ColorPreset.ALPHA, line_thickness);
+            DEF_HIGHLIGHT_TEXTURE = new Texture(map);
+
+            map.set(2, 2, ColorPreset.LIGHT_BLUE.toColor().setAlpha(100));
+            DEF_MARKED_TEXTURE = new Texture(map);
+
+            map.destroy();
+        }
+
+        setName("|");
+        setSelectable(true);
+        Option_SelectableOptions(false, false);
+
+        outline_t = DEF_OUTLINE_TEXTURE;
+        highlighted_t = DEF_HIGHLIGHT_TEXTURE;
+        marked_t = DEF_MARKED_TEXTURE;
+
+        boundary = new Vector4i(0, 0, box_size.getWidth(), box_size.getHeight());
+        marked_boundary = new Vector4i();
 
         cursor = new Hang(this, "|");
         cursor.show(false);
         cursor.setInteractable(false);
 
-        setHeight((box_size.getHeight()-line_thickness*2) * text_scale);
+        setTextHeight((box_size.getHeight() - line_thickness * 2) * text_scale);
         setMaxTextWidth(box_size.getWidth() - line_thickness*2 - cursor.getWidth());
         text.setPosition(getX() + line_thickness*2, getY() + (box_size.getHeight()-text.getHeight()) * text_pos_y);
         cursor.setScale(text.getScale());
@@ -109,27 +126,72 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
 
     @Override
     public void setScale(float scale) {
-        outline.setScale(scale);
-        highlighted.setScale(scale);
+        this.scale = scale;
 
-        setHeight((outline.getHeight()-line_thickness*2)*text_scale);
+        setHeight((boundary.getHeight() - line_thickness * 2) * text_scale);
         setMaxTextWidth((int) (text.getMaxWidth() * scale));
         setPosition(getPosition());
     }
 
     @Override
     public float getScale() {
-        return outline.getScale();
+        return scale;
+    }
+
+
+    public Button setTextHeight(float text_height) {
+        text.setHeight((int) text_height);
+        cursor.setScale(text.getScale());
+        cursor.setRelPosition(getMaxTextWidth(), - line_thickness);
+        text.setPosition(getX() + line_thickness * 2, getY() + (boundary.getHeight() - text.getHeight()) * text_pos_y);
+        updateCursor();
+        return this;
     }
 
     @Override
     public Button setHeight(float height) {
-        text.setHeight((int) height);
-        cursor.setScale(text.getScale());
-        cursor.setRelPosition(getMaxTextWidth(), - line_thickness);
-        text.setPosition(getX() + line_thickness*2, getY() + (outline.getHeight()-text.getHeight()) * text_pos_y);
-        updateCursor();
+        boundary.setHeight((int) height);
+        setTextHeight((height - line_thickness * 2) * text_scale);
         return this;
+    }
+
+    @Override
+    public Button setHeight(int height) {
+        boundary.setHeight((int) height);
+        setTextHeight((height - line_thickness * 2) * text_scale);
+        return this;
+    }
+
+    @Override
+    public Button setWidth(int width) {
+        boundary.setWidth(width);
+        setMaxTextWidth(width - line_thickness * 2 - cursor.getWidth());
+        return this;
+    }
+
+    @Override
+    public Button setWidth(float width) {
+        boundary.setWidth((int) width);
+        setMaxTextWidth(width - line_thickness * 2 - cursor.getWidth());
+        return this;
+    }
+
+    @Override
+    public Button setSize(int width, int height) {
+        boundary.setSize(width, height);
+        setTextHeight((height - line_thickness * 2) * text_scale);
+        setMaxTextWidth(width - line_thickness * 2 - cursor.getWidth());
+        return this;
+    }
+
+    @Override
+    public Button setSize(Vector2 boundaries) {
+        return setSize(boundaries.getX(), boundaries.getY());
+    }
+
+    @Override
+    public Button setSize(float width, float height) {
+        return setSize((int) width, (int) height);
     }
 
     @Override
@@ -140,37 +202,36 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
 
     @Override
     protected boolean isColliding() {
-        return Button.isColliding((int) getX(), (int) getY(), (int) outline.getWidth(), (int) outline.getHeight());
+        return Button.isColliding((int) getX(), (int) getY(), (int) boundary.getWidth(), (int) boundary.getHeight());
     }
 
     @Override
     public Vector2 getPosition() {
-        return outline.getPosition();
+        return new Vector2(boundary.getPosition());
     }
 
     @Override
     public float getX() {
-        return outline.getX();
+        return boundary.getX();
     }
 
     @Override
     public float getY() {
-        return outline.getY();
+        return boundary.getY();
     }
 
     @Override
     public Button setPosition(float x, float y) {
-        super.setPosition(x + line_thickness*2, y + (outline.getHeight()-text.getHeight()) * text_pos_y);
-        outline.setPosition(x, y);
-        highlighted.setPosition(x, y);
+        super.setPosition(x + line_thickness * 2, y + (boundary.getHeight() - text.getHeight()) * text_pos_y);
+        boundary.setPosition(x, y);
         updateCursor();
-        marked.setPosition(text.getTotalPosition().getX() + text.getMaxWidth() - cur_text_width, text.getTotalPosition().getY());
+        marked_boundary.setPosition(text.getTotalPosition().getX() + text.getMaxWidth() - cur_text_width, text.getTotalPosition().getY());
         if(text.getAlignment() == Text.Text_Align.LEFT_BOUND) {
-            marked.setPosition(text.getTotalPosition().getX(), text.getTotalPosition().getY());
-            marked.setSize(text.getWidth(0, text.getNameLength()), text.getHeight());
+            marked_boundary.setPosition(text.getTotalPosition().getX(), text.getTotalPosition().getY());
+            marked_boundary.setSize(text.getWidth(0, text.getNameLength()), text.getHeight());
         } else {
-            marked.setPosition(text.getTotalPosition().getX() + text.getMaxWidth() - cur_text_width, text.getTotalPosition().getY());
-            marked.setSize(cur_text_width, text.getHeight());
+            marked_boundary.setPosition(text.getTotalPosition().getX() + text.getMaxWidth() - cur_text_width, text.getTotalPosition().getY());
+            marked_boundary.setSize(cur_text_width, text.getHeight());
         }
         return this;
     }
@@ -232,7 +293,7 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
         if(anim_time > 0.5f) {
             show_cursor = !show_cursor;
             anim_time = 0;
-            cursor.show(show_cursor && isSelected());
+            cursor.show(show_cursor && (isSelected() && current_selected == this));
         }
     }
 
@@ -252,10 +313,10 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
 //            if(marked_b)
 //                renderer.processTexture(marked, layer+2);
 
-            renderer.processTexture(outline, layer);
+            renderer.process(outline_t, boundary, layer);
 
-            if (isHovered() || isSelected())
-                renderer.processTexture(highlighted, layer);
+            if (isHovered() || (isSelected() && current_selected == this))
+                renderer.process(highlighted_t, boundary, layer);
 
         }
     }
@@ -265,6 +326,7 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
 
     @Override
     public void onTouchDown() {
+        if (isColliding()) current_selected = this;
 
         long currentTime = System.currentTimeMillis();
         if(currentTime - lastClickTime < DOUBLE_CLICK_DELAY) {
@@ -274,11 +336,11 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
             } else {
                 marked_b = true;
                 if(text.getAlignment() == Text.Text_Align.LEFT_BOUND) {
-                    marked.setPosition(text.getTotalPosition().getX(), text.getTotalPosition().getY());
-                    marked.setSize(text.getWidth(0, text.getNameLength()), text.getHeight());
+                    marked_boundary.setPosition(text.getTotalPosition().getX(), text.getTotalPosition().getY());
+                    marked_boundary.setSize(text.getWidth(0, text.getNameLength()), text.getHeight());
                 } else {
-                    marked.setPosition(text.getTotalPosition().getX() + text.getMaxWidth() - cur_text_width, text.getTotalPosition().getY());
-                    marked.setSize(cur_text_width, text.getHeight());
+                    marked_boundary.setPosition(text.getTotalPosition().getX() + text.getMaxWidth() - cur_text_width, text.getTotalPosition().getY());
+                    marked_boundary.setSize(cur_text_width, text.getHeight());
                 }
             }
             lastClickTime = 0;
@@ -289,17 +351,17 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
             int i = text.getHoveredChar();
             if (i != -1) {
                 cursor_pos = i;
-                updateCursor();
+            } else {
+                cursor_pos = getNameLength();
             }
+        updateCursor();
 
-        if(isSelected()) {
-            cursor.show(true);
-        }
+        cursor.show(isSelected() && current_selected == this);
     }
 
     @Override
     public void onKeyTyped(int glfw_key, char character) {
-        if(isSelected()) {
+        if (isSelected() && current_selected == this) {
             if(character != 0) {
                 setName(display_name.substring(0, cursor_pos) + character + display_name.substring(cursor_pos));
 //                text.removeShifting(1);
@@ -318,7 +380,9 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
 
     @Override
     public void onKeyDown(int key, int action, int modifier) {
-        if(key == GLFW.GLFW_KEY_V) {
+        if (!isSelected() || current_selected != this) return;
+
+        if (key == GLFW.GLFW_KEY_V) {
             if(Input.keys[GLFW.GLFW_KEY_LEFT_CONTROL]) {
                String clipboard =  KLIB.io.getClipboardString();
                if(!clipboard.isBlank()) {
@@ -342,8 +406,8 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
         if(key == GLFW.GLFW_KEY_A) {
             if(Input.keys[GLFW.GLFW_KEY_LEFT_CONTROL]) {
                 marked_b = true;
-                marked.setPosition(text.getTotalPosition().getX() + text.getMaxWidth() - cur_text_width, text.getTotalPosition().getY());
-                marked.setSize(cur_text_width, text.getHeight());
+                marked_boundary.setPosition(text.getTotalPosition().getX() + text.getMaxWidth() - cur_text_width, text.getTotalPosition().getY());
+                marked_boundary.setSize(cur_text_width, text.getHeight());
                 return;
             };
         }
@@ -405,8 +469,10 @@ public class Textable extends Button implements Button_onTouchDown_Event, Button
     @Override
     public void dispose() {
         super.dispose();
-        outline.destroy();
-        marked.destroy();
-        highlighted.destroy();
+        if (outline_t != DEF_OUTLINE_TEXTURE) {
+            outline_t.destroy();
+            marked_t.destroy();
+            highlighted_t.destroy();
+        }
     }
 }

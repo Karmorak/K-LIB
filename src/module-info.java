@@ -36,6 +36,7 @@ module lwjgl_lib {
 	exports com.karmorak.lib.utils.file;
 	exports com.karmorak.lib.font;
 	exports com.karmorak.lib.engine.graphic;
+    exports com.karmorak.lib.engine.graphic.shaders;
 	exports com.karmorak.lib.engine.graphic.roomy;
 	exports com.karmorak.lib.engine.graphic.flat;
 	exports com.karmorak.lib.engine.graphic.flat.collission;

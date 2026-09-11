@@ -73,8 +73,8 @@ public class Background {
 	}
 	
 	public static void drawBackGround(MasterRenderer renderer) {
-		renderer.processTexture(BackGround);
-		renderer.processTexture(BackGround2);
+        renderer.process(BackGround);
+        renderer.process(BackGround2);
 	}
 
 }

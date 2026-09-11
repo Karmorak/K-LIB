@@ -572,22 +572,20 @@ public class Diagramm {
 			horizontal_b.get(i).draw(renderer, layer+1);
 			
 			x += d;
-		}		
-		
-		
+		}
 
-		
-		for (int i = 0; i < lines.size(); i++) {
-			renderer.processDrawMap(lines.get(i), pos.getX() + background_abs_left + line_inbound_left, pos.getY() + background_abs_bottom + b_add + line_inbound_bottom, layer + 2 + i);
-		}
-		
-		if(columns != null) {
-			renderer.processTexture(columns, pos.getX() + background_abs_left, pos.getY() + background_abs_bottom + b_add, layer +1);
-		}
-		
-		if(background!= null)
-			renderer.processTexture(background, pos.getX(), pos.getY(), background.getWidth(), background.getHeight() + b_add, layer);
-		
+
+//		for (int i = 0; i < lines.size(); i++) {
+//			renderer.process(lines.get(i), pos.getX() + background_abs_left + line_inbound_left, pos.getY() + background_abs_bottom + b_add + line_inbound_bottom, layer + 2 + i);
+//		}
+//
+//		if(columns != null) {
+//			renderer.process(columns, pos.getX() + background_abs_left, pos.getY() + background_abs_bottom + b_add, layer +1);
+//		}
+//
+//		if(background!= null)
+//			renderer.process(background, pos.getX(), pos.getY(), background.getWidth(), background.getHeight() + b_add, layer);
+//
 		
 	}
 	

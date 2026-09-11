@@ -2,13 +2,10 @@ package com.karmorak.lib.utils.file;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -35,6 +32,29 @@ import org.lwjgl.util.tinyfd.TinyFileDialogs;
 import shaders.shader_src.Loader;
 
 public class FileUtils {
+
+
+    public static String selectFile() {
+        return TinyFileDialogs.tinyfd_openFileDialog(
+                "Wähle Dateien aus",
+                "C:\\",
+                null,
+                "Text oder Bilder",
+                false // true = Mehrfachauswahl aktiviert
+        );
+    }
+
+    public static String selectFile(String title) {
+        return TinyFileDialogs.tinyfd_openFileDialog(
+                title,
+                "C:\\",
+                null,
+                "Text oder Bilder",
+                false // true = Mehrfachauswahl aktiviert
+        );
+    }
+
+
 
 	public static String[] selectFiles() {
 		// Filter definieren (optional)
@@ -106,6 +126,7 @@ public class FileUtils {
     }
 
     public static boolean isImageType(String mimeType) {
+        if (mimeType == null) return false;
         try {
             Path path = Paths.get(mimeType);
             String contentType = Files.probeContentType(path);
@@ -135,7 +156,7 @@ public class FileUtils {
                     TinyFileDialogs.tinyfd_messageBox
                             ("Fehler", "Du musst" + limit + "  Dateien auswählen!", "ok", "error", 1);
                 }
-                return selectFileLimited(limit, smaller_allowed, larger_allowed);
+                return selectFileLimited(limit, false, larger_allowed);
             }
         }
         if (!larger_allowed) {
@@ -147,7 +168,7 @@ public class FileUtils {
                     TinyFileDialogs.tinyfd_messageBox
                             ("Fehler", "Du musst" + limit + "  Dateien auswählen!", "ok", "error", 1);
                 }
-                return selectFileLimited(limit, smaller_allowed, larger_allowed);
+                return selectFileLimited(limit, smaller_allowed, false);
             }
         }
         return files;
@@ -155,22 +176,27 @@ public class FileUtils {
 
 	public static String loadShader(String path) {
 		StringBuilder result = new StringBuilder();
-		
-		
-		try {
-			InputStream in = Loader.class.getResourceAsStream(path);
-			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-			String line;
-			while ((line = reader.readLine()) != null) {
-				result.append(line).append("\n");
-			}
-			reader.close();
+
+        // Try-with-resources schließt den Stream automatisch, auch bei Fehlern
+        try (InputStream in = Loader.class.getResourceAsStream(path)) {
+            if (in == null) {
+                throw new IOException("Shader-Datei nicht gefunden: " + path);
+            }
+
+            // Explizit UTF_8 angeben, um Encoding-Fehler zu vermeiden
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    // Das \n ist wichtig, damit Shader-Kommentare (//) nicht die nächste Zeile auskommentieren
+                    result.append(line).append("\n");
+                }
+            }
 		} catch (IOException e) {
-			System.err.println("Could not read file.");
+            System.err.println("Could not read file: " + path);
 			e.printStackTrace();
 			System.exit(-1);
 		}
-		
+
 		return result.toString();
 	}
 	
@@ -194,13 +220,11 @@ public class FileUtils {
 		
 		return result.toString();
 	}
-	
-	
-	public static ArrayList<String> readFiletoArray(File f) {
-		
-		
-		
-		ArrayList<String> lines = new ArrayList<String>();
+
+
+    public static ArrayList<String> readFile(File f) {
+
+        ArrayList<String> lines = new ArrayList<>();
 		
 		String line = "";
 		
@@ -212,8 +236,8 @@ public class FileUtils {
 					char c = (char) i;					
 					
 					if(c == '\n') {
-						c = (char) -1;	
-						line = line.substring(0, line.length());
+                        c = (char) -1;
+//						line = line.substring(0, line.length());
 
                         lines.add(line);
 						line = "";
@@ -225,6 +249,7 @@ public class FileUtils {
 				
 				rd.close();				
 			} catch (IOException e) {
+                System.err.println("FileUtils" + "Could not read file!");
 				e.printStackTrace();
 			}
 			
@@ -369,25 +394,23 @@ public class FileUtils {
 
 	
 	/**
-	 * @param f
-	 * @param data_
-	 * @param mode  
-	 * mode 0 = replace whole file;  
-	 * mode 1 = append;  
-	 * mode 2 = replace line on @param line when line is <0 than its appended  
-	 * @param line
-	 * 
-	 * @throws IOException 
-	 * 
+     * @param f File
+     * @param data_ data
+     * @param mode
+     * 0 = replace whole file;
+     * 1 = append;
+     * 2 = replace line on @param line when line is <0 than its appended
+     * @param line which line
+	 *
+     * @throws IOException exception	 *
 	 */	
 	public static void writeToFile(File f, String[] data_, int mode, int line) throws IOException {
 
 		ArrayList<String> lines = null;
-		if(mode > 0) {
-			lines = readFiletoArray(f);
-//			if(lines.isEmpty()) {throw new IOException();}
-		} else {
+        if (mode == 0) {
 			checkFile(f);
+        } else {
+            lines = readFile(f);
 		}
 		
 		BufferedWriter bw = new BufferedWriter(new FileWriter(f));
@@ -442,15 +465,15 @@ public class FileUtils {
 	}
 	
 	/**
-	 * @param f
-	 * @param data
+     * @param f f
+     * @param data data
 	 * @param mode  
 	 * mode 0 = replace whole file;  
 	 * mode 1 = append;  
 	 * mode 2 = replace line on @param line when line is <0 than its appended  
-	 * @param line
-	 * 
-	 * @throws IOException 
+     * @param line line
+	 *
+     * @throws IOException exception
 	 * 
 	 */	
 	public static void writeToFile(File f, String data, int mode, int line) throws IOException {				
@@ -551,5 +574,83 @@ public class FileUtils {
 		return false;
 	}
 
+
+    public static ArrayList<String> list = new ArrayList<>();
+
+
+    public static String getString(String root, String key) {
+
+        if (!checkFile(root)) return null;
+
+        File file = new File(root);
+
+        ArrayList<String> list = readFile(file);
+
+        if (!list.isEmpty()) {
+            for (String s : list) {
+                String[] parts = s.split(" ");
+                if (parts.length < 2) {
+                    parts = s.split(":");
+                }
+                if (parts[0].equals(key) || parts[0].equals(key + ":")) {
+                    return parts[1];
+                }
+            }
+        }
+        return null;
+    }
+
+    public static void setString(String root, String key, String value) {
+        if (!checkFile(root)) return;
+
+        File file = new File(root);
+        ArrayList<String> list = readFile(file);
+
+        FileWriter writer = null;
+        boolean found = false;
+
+        try {
+            writer = new FileWriter(file);
+            if (!list.isEmpty()) {
+                for (String s : list) {
+                    if (s.split(" ")[0].equals(key) || s.split(" ")[0].equals(key + ":")) {
+                        String part1 = s.split("\t")[0];
+                        writer.write(part1 + "\t" + value + "\n");
+                        found = true;
+                    } else {
+                        writer.write(s + "\n");
+                        writer.flush();
+                    }
+                    writer.flush();
+                }
+            }
+
+            if (!found) {
+                writer.write(key + ": " + value + "\n");
+                writer.flush();
+            }
+
+            writer.close();
+        } catch (IOException e) {
+            System.err.println("Desktop: failed to write!");
+            e.printStackTrace();
+        }
+    }
+
+    public static void write(String line, String path) {
+        File file = new File(path);
+        FileWriter writer = null;
+
+        checkFile(file, true);
+
+        try {
+            writer = new FileWriter(file);
+            writer.write(line);
+            writer.flush();
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 	
 }

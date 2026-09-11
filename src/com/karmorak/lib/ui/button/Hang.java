@@ -21,8 +21,8 @@ public class Hang extends Button {
 	}
 
 	
-	Hang(Button father) {		
-		super(father != null ? father.getName() : " ", father != null ? father.font : DEF_FONT);			
+	Hang(Button father) {
+        super(father != null ? father.getName() : " ", father != null ? father.font : DEF_FONT, father != null ? father.getColor() : defColor);
 		this.father = father;
 		if(father != null)
 			father.hangs.add(this);
@@ -31,7 +31,7 @@ public class Hang extends Button {
 	}
 
 	Hang(Button father, String name) {
-		super(name, father != null ? father.font : DEF_FONT);
+        super(name, father != null ? father.font : DEF_FONT, father != null ? father.getColor() : defColor);
 		this.father = father;
 		if(father != null)
 			father.hangs.add(this);

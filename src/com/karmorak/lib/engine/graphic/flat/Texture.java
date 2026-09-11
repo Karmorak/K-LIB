@@ -3,6 +3,7 @@ package com.karmorak.lib.engine.graphic.flat;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,14 +30,17 @@ import static org.lwjgl.opengl.GL46.*;
 
 import com.karmorak.lib.ColorPreset;
 import com.karmorak.lib.Colorable;
+import com.karmorak.lib.engine.graphic.MasterRenderer;
 import com.karmorak.lib.engine.graphic.Renderable;
+import com.karmorak.lib.engine.graphic.shaders.TextureShader;
 import com.karmorak.lib.engine.io.images.ImageLoader;
 import com.karmorak.lib.math.Vector2;
 import com.karmorak.lib.math.Vector3;
 import com.karmorak.lib.math.Vector4;
 import com.karmorak.lib.math.Vector4i;
+import com.karmorak.lib.prototype.UI_Element;
 
-public class Texture extends TextureConstruct implements Renderable {
+public class Texture extends TextureConstruct implements Renderable, UI_Element {
 
 	static int BPP = 4;
 	public final TextureData DATA;
@@ -48,6 +52,11 @@ public class Texture extends TextureConstruct implements Renderable {
 
 	public Texture(URL path) {
 		DATA = (loadURL(path));
+		init();
+	}
+
+	public Texture(URL path, int min_filter, int mag_filter) {
+		DATA = (loadURL(path, min_filter, mag_filter));
 		init();
 	}
 
@@ -134,7 +143,7 @@ public class Texture extends TextureConstruct implements Renderable {
 		scale = 1f;
 		pos = new Vector2(0, 0);
 		size = new Vector2(DATA.getWIDTH(), DATA.getHEIGHT());
-        rotation = Vector3.EMPTY;
+		rotation = new Vector3(0, 0, 0);
         overlayColor = ColorPreset.WHITE;
 		overlayColorIntensity = 1f;
 	}
@@ -297,21 +306,13 @@ public class Texture extends TextureConstruct implements Renderable {
 
 
 	@Override
-	public void renderManual(List<Vector4> positions, TextureShader shader) {
+	public void renderManual(FloatBuffer buffer, int startOffset, int spriteCount, TextureShader shader) {
+		if (spriteCount <= 0) return;
 
-		// 1. Einmal binden für alle Instanzen dieser Textur
-		glBindTexture(GL_TEXTURE_2D, DATA.getID());
-
-		// 2. Farbe einmal setzen (sofern sie für alle Instanzen gleich ist)
+		glBindTexture(GL_TEXTURE_2D, getID());
 		shader.load2DColor(overlayColor.toColor(), overlayColorIntensity);
-
-		for(Vector4 bound : positions) {
-//			// Nur die Matrix muss sich pro Objekt ändern
-//			shader.loadTransformationMatrix(npos, nsize, rotation, flipX, flipY);
-            SHADER.loadTransformation((int) bound.getX(), (int) bound.getY(), (int) bound.getWidth(), (int) bound.getHeight(), rotation.getZ(), scale, false, false);
-
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		}
+		// Rendert direkt den gewünschten Bereich aus dem bereits befüllten VBO
+		glDrawArraysInstancedBaseInstance(GL_TRIANGLE_STRIP, 0, 4, spriteCount, startOffset);
 	}
 
 	@Override
@@ -319,5 +320,8 @@ public class Texture extends TextureConstruct implements Renderable {
 
 	}
 
-
+	@Override
+	public void draw(MasterRenderer renderer, int layer) {
+		renderer.process(this, layer);
+	}
 }

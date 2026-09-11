@@ -1,4 +1,4 @@
-//v1.5.0
+//v1.5.1
 package com.karmorak.lib.font;
 
 import java.util.ArrayList;
@@ -58,6 +58,9 @@ public class Text {
 	 *   - renamed get_Position_Total to get_TotalPosition
 	 *   - added get_choverd_char to get the char where the mouse is hovered on
 	 *   - added get_LastDrawnChar it indicates how much chars got drawn actually (relevant when using maxWidth > 0)
+     *  v.1.5.1
+     *   - added Overlap_dots (kinda experimental)
+     * 	 - added isOverlapping
 	 *
 	 *
 	 * 
@@ -92,6 +95,9 @@ public class Text {
 	private int last_drawn_char;
 	private int shift_char = 0;
 
+    private boolean overlapDots = false;
+    private OwnCharData triple_dots;
+
 	/**
 	 * 0 = namechanged; 
 	 * 1 = colorchanged; 
@@ -106,7 +112,7 @@ public class Text {
 
 	static HashMap<String, FontCache> caches = new HashMap<>();
 
-	public static final ArrayList<Text> texts = new ArrayList<Text>();
+//	public static final ArrayList<Text> texts = new ArrayList<Text>();
 
 
 	private record FontCache(HashMap<Color, DrawMap> font_colors, HashMap<Color, HashMap<Identifier, CharTexture>> cached_chars_v2) {
@@ -138,7 +144,7 @@ public class Text {
 	public record chardata(Color color, Identifier ident) {}
 
 
-	public static enum Text_Align {
+    public enum Text_Align {
 		LEFT_BOUND, MIDDLE, RIGHT_BOUND
 	}
 	
@@ -154,7 +160,7 @@ public class Text {
 		longest_line_width_raw = font.getWordBounds_Raw(name).getWidth();
 		
 		this.pos = new Vector2i(0, 0);
-		texts.add(this);
+//		texts.add(this);
 	}
 	
 	public Text(OwnFont font, String[] name) {
@@ -166,7 +172,7 @@ public class Text {
 		calcLongestLine();
 		
 		this.pos = new Vector2i(0, 0);
-		texts.add(this);
+//		texts.add(this);
 	}
 
 	
@@ -405,7 +411,6 @@ public class Text {
 		longest_line_width_raw = width;
 		return longest_line = longest;
 	}
-
 	
 	public float getWidth() {
 		return getWidth(0);				
@@ -458,20 +463,6 @@ public class Text {
 		}	
 		return height;		
 	}
-
-//	public Vector2i getTextPosition() {
-//		if(name.length == 1) {
-//			if(max_width == 0)
-//				return pos;
-//			else {
-//
-//			}
-//		} else {
-//			float y = pos.getY();
-//			y -= getHeight(0) - getLineSpacing();
-//			return new Vector2i(pos.getX(), y);
-//		}
-//	}
 
 	public Vector2 getTextPosition() {
 		if(name.length == 1) {
@@ -708,6 +699,18 @@ public class Text {
 		return -1;
 	}
 
+    public boolean isOverlapping() {
+        return al_x < 0;
+    }
+
+    public void doOverlapDots(boolean overlapDots) {
+        this.overlapDots = overlapDots;
+        if (overlapDots) {
+            if (triple_dots == null) changed[3] = true;
+            changed[5] = true;
+        }
+    }
+
 	public int getHoveredChar(int mouse_x, int mouse_y) {
 		int pos_x = (int) getTotalPosition().getX();
 		int cur_width = 0;
@@ -882,6 +885,9 @@ public class Text {
 			caches.put(font.getPath(), new FontCache());
 			fontCache = caches.get(font.getPath());
 		}
+        if (overlapDots && triple_dots == null)
+            triple_dots = OwnChar.createOwnChars("§§triple-dot-layed", font)[0];
+
 		//	cache					name
 		if(changed[0] || fontCache.isEmpty() || (changed[3] && changed[7])) {
 			ArrayList<Identifier> needed = new ArrayList<>();
@@ -928,9 +934,24 @@ public class Text {
 					oc.setScale(all_scale);
 					oc.setPosition(e_x, (int) e_y);
 
-					if(max_width != 0 && (width + charBounds.getWidth() + char_spacing) * scale > max_width) {
+                    int cur_width = (int) (width + charBounds.getWidth() + char_spacing);
+                    if (overlapDots) cur_width += (int) font.getCharSize(triple_dots.getIdentifier()).getWidth();
+                    if (max_width != 0 && (cur_width) * scale > max_width) {
 						al_x = (int) (max_width - width);
 						last_drawn_char = j+1;
+                        if (overlapDots) {
+                            data = font.DATA.getInfo(triple_dots.getIdentifier());
+                            charBounds = font.getCharSize(triple_dots.getIdentifier());
+                            if (text_align == Text_Align.RIGHT_BOUND) {
+                                e_x = (int) (pos_x + max_width - (width + charBounds.getWidth()) * scale);
+                            } else {
+                                e_x = (int) (pos_x + ax + ((width + charBounds.getWidth()) * scale));
+                            }
+                            e_y = y + (data[1] * all_scale);
+                            triple_dots.setScale(all_scale);
+                            triple_dots.setPosition(e_x, (int) e_y);
+                            needed.add(triple_dots.getIdentifier());
+                        }
 						break;
 					}
 					width += charBounds.getWidth() + char_spacing;
@@ -983,11 +1004,6 @@ public class Text {
 		}
 	}
 
-	public static void update() {
-//        for (Text t : texts) {
-//            t.update(t.pos.getX(), t.pos.getY());
-//        }
-	}
 
 	/**
 	 *		0 = namechanged
@@ -997,6 +1013,7 @@ public class Text {
 	 *   	4 = position changed
 	 *
 	 */
+
 	public void draw(MasterRenderer renderer, float x, float y, int layer) {
 		if(x != pos.getX())
 			changed[5] = true;
@@ -1008,6 +1025,10 @@ public class Text {
 
 		FontCache fontCache = caches.get(font.getPath());
 
+//		if(isOverlapping() && overlapDots && triple_dots == null) {
+//			triple_dots = OwnChar.createOwnChars("§triple_dots_laying", font)[0];
+//		}
+
 		if(max_width != 0) {
 			if(text_align == Text_Align.RIGHT_BOUND) {
 				for (OwnCharData[] ownCharData : name) {
@@ -1015,11 +1036,14 @@ public class Text {
 					for (int j = last_drawn_char; j < ownCharData.length - shift_char; j++) {
 						OwnCharData oc = ownCharData[j];
 						CharTexture region = fontCache.getCachedTexture(color, oc.getIdentifier());
-
 						if (region != null) {
 							renderer.processChar(region, oc, layer);
 						}
 					}
+                    if (isOverlapping() && overlapDots) {
+                        CharTexture region = fontCache.getCachedTexture(color, triple_dots.getIdentifier());
+                        renderer.processChar(region, triple_dots, layer);
+                    }
 				}
 			} else {
 				for (OwnCharData[] ownCharData : name) {
@@ -1032,6 +1056,10 @@ public class Text {
 					}
 				}
 			}
+            if (isOverlapping() && overlapDots) {
+                CharTexture region = fontCache.getCachedTexture(color, triple_dots.getIdentifier());
+                renderer.processChar(region, triple_dots, layer);
+            }
 		} else {
 			for (OwnCharData[] ownCharData : name) {
 				for (OwnCharData oc : ownCharData) {
@@ -1042,6 +1070,7 @@ public class Text {
 				}
 			}
 		}
+
 	}
 
 
@@ -1052,6 +1081,9 @@ public class Text {
 			for (OwnCharData oc : line)
 				if(fontCache.getCachedTexture(color, oc.getIdentifier()) == null)
 					needed.add(oc.getIdentifier());
+        if (isOverlapping() && overlapDots) {
+            needed.add(triple_dots.getIdentifier());
+        }
 		//load the needed chars into the cache
 		if(!needed.isEmpty()) {
 			DrawMap m;
@@ -1061,6 +1093,7 @@ public class Text {
 				m = font.colorize(color);
 				fontCache.font_colors.put(color, m);
 			}
+
 			for (Identifier identifier : needed) {
 				CharTexture reg = new CharTexture(m, font.DATA.getRegion(identifier));
 				reg.create();
@@ -1111,9 +1144,23 @@ public class Text {
 				oc.setScale(all_scale);
 				oc.setPosition(e_x, (int) e_y);
 
-				if(max_width != 0 && (width + charBounds.getWidth() + char_spacing) * scale > max_width) {
+                int cur_width = (int) (width + charBounds.getWidth() + char_spacing);
+                if (overlapDots) cur_width += (int) font.getCharSize(triple_dots.getIdentifier()).getWidth();
+                if (max_width != 0 && (cur_width) * scale > max_width) {
 					al_x = (int) (max_width - width);
 					last_drawn_char = j+1;
+                    if (overlapDots) {
+                        data = font.DATA.getInfo(triple_dots.getIdentifier());
+                        charBounds = font.getCharSize(triple_dots.getIdentifier());
+                        if (text_align == Text_Align.RIGHT_BOUND) {
+                            e_x = (int) (pos_x + max_width - (width + charBounds.getWidth()) * scale);
+                        } else {
+                            e_x = (int) (pos_x + ax + ((width + charBounds.getWidth()) * scale));
+                        }
+                        e_y = y + (data[1] * all_scale);
+                        triple_dots.setScale(all_scale);
+                        triple_dots.setPosition(e_x, (int) e_y);
+                    }
 					break;
 				}
 				width += charBounds.getWidth() + char_spacing;
@@ -1165,9 +1212,22 @@ public class Text {
 				oc.setScale(all_scale);
 				oc.setPosition(e_x, (int) e_y);
 
-				if(max_width != 0 && (width + charBounds.getWidth() + char_spacing) * scale > max_width) {
+                int cur_width = (int) (width + charBounds.getWidth() + char_spacing);
+                if (overlapDots) cur_width += (int) font.getCharSize(triple_dots.getIdentifier()).getWidth();
+                if (max_width != 0 && (cur_width) * scale > max_width) {
 					al_x = (int) (max_width - width);
 					last_drawn_char = j+1;
+                    if (overlapDots) {
+                        data = font.DATA.getInfo(triple_dots.getIdentifier());
+                        charBounds = font.getCharSize(triple_dots.getIdentifier());
+                        if (text_align == Text_Align.RIGHT_BOUND) {
+                            e_x = (int) (pos_x + max_width - (width + charBounds.getWidth()) * scale);
+                        } else {
+                            e_x = (int) (pos_x + ax + ((width + charBounds.getWidth()) * scale));
+                        }
+                        e_y = y + (data[1] * all_scale);
+                        triple_dots.setPosition(e_x, (int) e_y);
+                    }
 					break;
 				}
 				width += charBounds.getWidth() + char_spacing;
@@ -1207,9 +1267,20 @@ public class Text {
 
 				oc.setPosX(e_x);
 
-				if(max_width != 0 && (width + charBounds.getWidth() + char_spacing) * scale > max_width) {
+                int cur_width = (int) (width + charBounds.getWidth() + char_spacing);
+                if (overlapDots) cur_width += (int) font.getCharSize(triple_dots.getIdentifier()).getWidth();
+                if (max_width != 0 && (cur_width) * scale > max_width) {
 					al_x = (int) (max_width - width);
 					last_drawn_char = j+1;
+                    if (overlapDots) {
+                        charBounds = font.getCharSize(triple_dots.getIdentifier());
+                        if (text_align == Text_Align.RIGHT_BOUND) {
+                            e_x = (int) (pos_x + max_width - (width + charBounds.getWidth()) * scale);
+                        } else {
+                            e_x = (int) (pos_x + ax + ((width + charBounds.getWidth()) * scale));
+                        }
+                        triple_dots.setPosX(e_x);
+                    }
 					break;
 				}
 				width += charBounds.getWidth() + char_spacing;
@@ -1233,6 +1304,12 @@ public class Text {
 			}
 			y -= (max_height + getLineSpacing());
 		}
+        if (overlapDots && isOverlapping()) {
+            float[] data = font.DATA.getInfo(triple_dots.getIdentifier());
+            int e_y = (int) (y + (data[1] * all_scale));
+            triple_dots.setPosY((int) e_y);
+        }
+
 		changed[4] = false;
 		changed[6] = false;
 	}
@@ -1282,9 +1359,23 @@ public class Text {
 				if(fontCache.getCachedTexture(color, oc.getIdentifier()) == null)
 					needed.add(oc.getIdentifier());
 
-				if(max_width != 0 && (width + charBounds.getWidth() + char_spacing) * scale > max_width) {
+                int cur_width = (int) (width + charBounds.getWidth() + char_spacing);
+                if (overlapDots) cur_width += (int) font.getCharSize(triple_dots.getIdentifier()).getWidth();
+                if (max_width != 0 && (cur_width) * scale > max_width) {
 					al_x = (int) (max_width - width);
 					last_drawn_char = j+1;
+                    if (overlapDots) {
+                        data = font.DATA.getInfo(triple_dots.getIdentifier());
+                        charBounds = font.getCharSize(triple_dots.getIdentifier());
+                        if (text_align == Text_Align.RIGHT_BOUND) {
+                            e_x = (int) (pos_x + max_width - (width + charBounds.getWidth()) * scale);
+                        } else {
+                            e_x = (int) (pos_x + ax + ((width + charBounds.getWidth()) * scale));
+                        }
+                        e_y = y + (data[1] * all_scale);
+                        triple_dots.setScale(all_scale);
+                        triple_dots.setPosition(e_x, (int) e_y);
+                    }
 					break;
 				}
 				width += charBounds.getWidth() + char_spacing;

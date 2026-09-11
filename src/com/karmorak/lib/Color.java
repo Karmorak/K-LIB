@@ -24,7 +24,8 @@ public class Color implements Colorable {
 			NEUTRAL = new Color(1, 1, 1),
 			ALPHA = new Color(0, 0, 0, 0);
 
-	@Deprecated
+
+    @Deprecated
 	public static Color BLACK() { return BLACK; }
 	@Deprecated
 	public static Color WHITE() { return WHITE; }
@@ -85,6 +86,13 @@ public class Color implements Colorable {
 		this.B = color.B;
 		this.A = color.A;
 	}
+
+    public Color(Vector3 float_colors) {
+        this.R = (int) Math.clamp(float_colors.getX() * 255, 0, 255);
+        this.G = (int) Math.clamp(float_colors.getY() * 255, 0, 255);
+        this.B = (int) Math.clamp(float_colors.getZ() * 255, 0, 255);
+        this.A = 255;
+    }
 
 	public Color(int color_code) {
 		A = (color_code >> 24) & 0xFF;

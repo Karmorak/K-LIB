@@ -240,9 +240,9 @@ public class Expandable extends Button implements Button_onTouchDown_Event {
 				if(expand_state == -1) {
 					text.draw(renderer, layer);
 				} else if(expand_state == 0) {
-					renderer.processTexture(background, getPosition().getX(), getPosition().getY() - cur_bg_bounds.getHeight() + getHeight(), cur_bg_bounds.getX(), cur_bg_bounds.getY(), layer+1);
+                    renderer.process(background, (int) getPosition().getX(), (int) (getPosition().getY() - cur_bg_bounds.getHeight() + getHeight()), (int) cur_bg_bounds.getX(), (int) cur_bg_bounds.getY(), layer + 1);
 				} else if (expand_state == 1) {
-					renderer.processTexture(background, getPosition().getX(), getPosition().getY() - max_bg_bounds.getHeight() + getHeight(), max_bg_bounds.getX(), max_bg_bounds.getY(), layer);
+                    renderer.process(background, (int) getPosition().getX(), (int) (getPosition().getY() - max_bg_bounds.getHeight() + getHeight()), (int) max_bg_bounds.getX(), (int) max_bg_bounds.getY(), layer);
 
 					for(Hang h : hangs) {
 						h.draw(renderer, layer + 1);
@@ -268,15 +268,17 @@ public class Expandable extends Button implements Button_onTouchDown_Event {
 
 
 	@Override
-	public void setX(float x) {
+    public Expandable setX(float x) {
 		if(scrollbar !=null) scrollbar.setPosition(x + getWidth()- scrollbar.getWidth() -3, getPosition().getY() + getHeight() -max_bg_bounds.getHeight() + 3);
 		super.setX(x);
+        return this;
 	}
 	
 	@Override
-	public void setY(float y) {
+    public Expandable setY(float y) {
 		if(scrollbar !=null) scrollbar.setPosition(getPosition().getX() + getWidth()- scrollbar.getWidth() -3, y + getHeight() -max_bg_bounds.getHeight() + 3);
 		super.setY(y);
+        return this;
 	}
 	
 	

@@ -1,4 +1,4 @@
-package com.karmorak.lib.engine.graphic.flat;
+package com.karmorak.lib.engine.graphic.shaders;
 
 import static org.lwjgl.opengl.GL11.GL_FALSE;
 import static org.lwjgl.opengl.GL20.GL_COMPILE_STATUS;
@@ -20,7 +20,7 @@ import static org.lwjgl.opengl.GL20.glShaderSource;
 import static org.lwjgl.opengl.GL20.glValidateProgram;
 
 import com.karmorak.lib.Color;
-import com.karmorak.lib.engine.graphic.roomy.shaders.ShaderProgramm;
+import com.karmorak.lib.engine.graphic.shaders.ShaderProgramm;
 import com.karmorak.lib.math.Matrix4;
 import com.karmorak.lib.math.Vector2;
 import com.karmorak.lib.math.Vector2i;
@@ -30,59 +30,59 @@ public class TextureShader extends ShaderProgramm {
 
     private static final String VERTEX_FILE = "/shaders/shader_src/TextureVertexShaderNew.glsl";
     private static final String FRAGMENT_FILE = "/shaders/shader_src/TextureFragmentShaderNew.glsl";
-	
-	
-	public TextureShader() {
-		super(VERTEX_FILE, FRAGMENT_FILE);
-	}
-	
-	public TextureShader(String vertexPath, String fragmentPath) {
-		super(vertexPath, fragmentPath);
-	}
 
-	@Override
-	public void create() {
-		programID = glCreateProgram();
-		vertexID = glCreateShader(GL_VERTEX_SHADER);
-		
-		glShaderSource(vertexID, vertexFile);
-		glCompileShader(vertexID);
-		
-		if(glGetShaderi(vertexID, GL_COMPILE_STATUS) == GL_FALSE) {
-			System.err.println("Vertex Shader: " + glGetShaderInfoLog(vertexID));
-			return;
-		}
-		
-		fragmentID = glCreateShader(GL_FRAGMENT_SHADER);
-		
-		glShaderSource(fragmentID, fragmentFile);
-		glCompileShader(fragmentID);
-		
-		if(glGetShaderi(fragmentID, GL_COMPILE_STATUS) == GL_FALSE) {
-			System.err.println("Fragment Shader: " + glGetShaderInfoLog(fragmentID));
-			return;
-		}	
-	
-		
-		glAttachShader(programID, vertexID);
-		glAttachShader(programID, fragmentID);
-		
-		glLinkProgram(programID);
-		if(glGetProgrami(programID, GL_LINK_STATUS) == GL_FALSE) {
-			System.err.println("Programm Linking:" + glGetProgramInfoLog(programID));
-			return;
-		}
-		
-		glValidateProgram(programID);
-		if(glGetProgrami(programID, GL_VALIDATE_STATUS) == GL_FALSE) {
-			System.err.println("Programm Validating:" + glGetProgramInfoLog(programID));
-			return;
-		}
-		
-		glDeleteShader(vertexID);
-		glDeleteShader(fragmentID);		
-		created = true;
-	}
+
+    public TextureShader() {
+        super(VERTEX_FILE, FRAGMENT_FILE);
+    }
+
+    public TextureShader(String vertexPath, String fragmentPath) {
+        super(vertexPath, fragmentPath);
+    }
+
+    @Override
+    public void create() {
+        programID = glCreateProgram();
+        vertexID = glCreateShader(GL_VERTEX_SHADER);
+
+        glShaderSource(vertexID, vertexFile);
+        glCompileShader(vertexID);
+
+        if (glGetShaderi(vertexID, GL_COMPILE_STATUS) == GL_FALSE) {
+            System.err.println("Vertex Shader: " + glGetShaderInfoLog(vertexID));
+            return;
+        }
+
+        fragmentID = glCreateShader(GL_FRAGMENT_SHADER);
+
+        glShaderSource(fragmentID, fragmentFile);
+        glCompileShader(fragmentID);
+
+        if (glGetShaderi(fragmentID, GL_COMPILE_STATUS) == GL_FALSE) {
+            System.err.println("Fragment Shader: " + glGetShaderInfoLog(fragmentID));
+            return;
+        }
+
+
+        glAttachShader(programID, vertexID);
+        glAttachShader(programID, fragmentID);
+
+        glLinkProgram(programID);
+        if (glGetProgrami(programID, GL_LINK_STATUS) == GL_FALSE) {
+            System.err.println("Programm Linking:" + glGetProgramInfoLog(programID));
+            return;
+        }
+
+        glValidateProgram(programID);
+        if (glGetProgrami(programID, GL_VALIDATE_STATUS) == GL_FALSE) {
+            System.err.println("Programm Validating:" + glGetProgramInfoLog(programID));
+            return;
+        }
+
+        glDeleteShader(vertexID);
+        glDeleteShader(fragmentID);
+        created = true;
+    }
 
     // In deiner Shader-Klasse
     public void loadTransformation(int x, int y, int width, int height, float rotZ, float scale, boolean flipX, boolean flipY) {
@@ -103,13 +103,13 @@ public class TextureShader extends ShaderProgramm {
         Matrix4 projection = Matrix4.orthographic(0, windowWidth, 0, windowHeight, -1, 10);
 
         this.setUniform("projectionMatrix", projection);
-	}
+    }
 
-	
-	public void load2DColor(Color color,float intensity) {
+
+    public void load2DColor(Color color, float intensity) {
         this.setUniform("u_color", color.Vec4f());
-		this.setUniform("u_color_intensity",  intensity);		
-	}
+        this.setUniform("u_color_intensity", intensity);
+    }
 
 
 }

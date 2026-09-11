@@ -1,11 +1,10 @@
 package com.karmorak.lib.engine.graphic.flat;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
+import java.nio.FloatBuffer;
 
-import com.karmorak.lib.font.ownchar.OwnCharData;
-
-import com.karmorak.lib.math.Vector2;
+import com.karmorak.lib.engine.graphic.Renderable;
+import com.karmorak.lib.engine.graphic.shaders.TextureShader;
 import com.karmorak.lib.math.Vector3;
 import com.karmorak.lib.math.Vector4;
 
@@ -13,10 +12,9 @@ import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
 import static org.lwjgl.opengl.GL11.GL_TRIANGLE_STRIP;
 import static org.lwjgl.opengl.GL11.glBindTexture;
 import static org.lwjgl.opengl.GL11.glDeleteTextures;
-import static org.lwjgl.opengl.GL11.glDrawArrays;
 import static org.lwjgl.opengl.GL46.*;
 
-public class CharTexture extends TextureConstruct {
+public class CharTexture extends TextureConstruct implements Renderable {
 
 	public final TextureData DATA;
 
@@ -46,7 +44,7 @@ public class CharTexture extends TextureConstruct {
         ByteBuffer buffer = drawFrom.getPixels_asByteBuffer(texX, texY, texWidth, texHeight);
         buffer.rewind();
 		int id = TextureConstruct.generateTextureID();
-		bindTexture(id, texWidth, texHeight, buffer, GL_NEAREST, GL_LINEAR);
+		bindTexture(id, texWidth, texHeight, buffer, GL_LINEAR, GL_LINEAR);
 		return new TextureData(id, texWidth, texHeight, null, 4);
 	}
 	
@@ -74,19 +72,6 @@ public class CharTexture extends TextureConstruct {
 //		glBindVertexArray(0);
 //		SHADER.unbind();
 	}
-	
-	public static void render_chars_manual(CharTexture texture, ArrayList<OwnCharData> arrayList, TextureShader shader) {
-		// 1. Einmal binden für alle Instanzen dieser Textur
-		glBindTexture(GL_TEXTURE_2D, texture.DATA.getID());
-		// 2. Farbe einmal setzen (sofern sie für alle Instanzen gleich ist)
-//		shader.load2DColor(texture.overlayColor, texture.overlayColorintensity);
-
-		for(OwnCharData oc : arrayList) {
-            shader.loadTransformation(oc.getX(), oc.getY(), oc.getWidth(), oc.getHeight(), 0, oc.getScale(), false, false);
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		}
-
-	}
 
 	@Override
 	public void destroy() {
@@ -99,25 +84,20 @@ public class CharTexture extends TextureConstruct {
 		return DATA;
 	}
 
+	@Override
+	public void renderManual(FloatBuffer buffer, int startOffset, int spriteCount, TextureShader shader) {
+		if (spriteCount <= 0) return;
+
+		glBindTexture(GL_TEXTURE_2D, getID());
+		if (overlayColor != null)
+			shader.load2DColor(overlayColor.toColor(), overlayColorIntensity);
+
+		// Rendert direkt den gewünschten Bereich aus dem bereits befüllten VBO
+		glDrawArraysInstancedBaseInstance(GL_TRIANGLE_STRIP, 0, 4, spriteCount, startOffset);
+	}
+
 	public void create() {
 
 	}
-
-//	public void renderManual(List<Vector4> positions, TextureShader shader) {
-//		create();
-//		// 1. Einmal binden für alle Instanzen dieser Textur
-//		glBindTexture(GL_TEXTURE_2D, getID());
-//		// 2. Farbe einmal setzen (sofern sie für alle Instanzen gleich ist)
-//		shader.load2DColor(overlayColor, overlayColorintensity);
-//		for(Vector4 bound : positions) {
-//			Vector2 nsize = translateBounds(bound.getWidth(), bound.getHeight());
-//			Vector2 npos = translatePosition(bound.getX(), bound.getY(), bound.getSize());
-//
-//			// Nur die Matrix muss sich pro Objekt ändern
-//			shader.loadTransformationMatrix(npos, nsize, rotation, flipX, flipY);
-//
-//			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-//		}
-//	}
 
 }

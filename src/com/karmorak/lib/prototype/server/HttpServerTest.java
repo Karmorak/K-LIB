@@ -12,6 +12,7 @@ import java.net.URISyntaxException;
 
 import com.karmorak.lib.KLIB;
 import com.karmorak.lib.Running;
+import com.karmorak.lib.engine.graphic.MasterRenderer;
 
 public class HttpServerTest extends Running {
 
@@ -230,7 +231,7 @@ public class HttpServerTest extends Running {
 	}
 
 	@Override
-	public void render() {
+    public void render(MasterRenderer renderer) {
 		// TODO Auto-generated method stub
 		
 	}

@@ -7,6 +7,7 @@ import static org.lwjgl.opengl.GL11.glDrawArrays;
 import static org.lwjgl.opengl.GL46.*;
 
 import java.net.URL;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.Map;
 
 import com.karmorak.lib.ColorPreset;
 import com.karmorak.lib.engine.graphic.Renderable;
+import com.karmorak.lib.engine.graphic.shaders.TextureShader;
 import com.karmorak.lib.math.Vector2;
 import com.karmorak.lib.math.Vector4;
 
@@ -164,7 +166,7 @@ public class TextureRegion extends TextureConstruct implements Renderable {
 		
 		for(TextureRegion region : fontRegions.keySet()) {			
 			for(Vector2 size : fontRegions.get(region).keySet()) {
-				region.setSize(size.getWidth(), size.getHeight());
+                region.setSize((int) size.getWidth(), (int) size.getHeight());
 				for (Vector2 pos : fontRegions.get(region).get(size)) {
 					region.setPosition(pos.getX(), pos.getY());
 					glBindVertexArray(region.quad.getVAO());
@@ -210,19 +212,19 @@ public class TextureRegion extends TextureConstruct implements Renderable {
 
 
 	@Override
-	public void renderManual(List<Vector4> positions, TextureShader shader) {
-		// 1. Einmal binden für alle Instanzen dieser Textur
-		glBindTexture(GL_TEXTURE_2D, DATA.getID());
-
-		// 2. Farbe einmal setzen (sofern sie für alle Instanzen gleich ist)
-		shader.load2DColor(overlayColor.toColor(), overlayColorIntensity);
-
-		for(Vector4 bound : positions) {
-			// Nur die Matrix muss sich pro Objekt ändern
-            shader.loadTransformation((int) bound.getX(), (int) bound.getY(), (int) bound.getWidth(), (int) bound.getHeight(), 0, scale, false, false);
-
-
-			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		}
+    public void renderManual(FloatBuffer buffer, int startOffset, int spriteCount, TextureShader shader) {
+//		// 1. Einmal binden für alle Instanzen dieser Textur
+//		glBindTexture(GL_TEXTURE_2D, DATA.getID());
+//
+//		// 2. Farbe einmal setzen (sofern sie für alle Instanzen gleich ist)
+//		shader.load2DColor(overlayColor.toColor(), overlayColorIntensity);
+//
+//		for(Vector4 bound : positions) {
+//			// Nur die Matrix muss sich pro Objekt ändern
+//            shader.loadTransformation((int) bound.getX(), (int) bound.getY(), (int) bound.getWidth(), (int) bound.getHeight(), 0, scale, false, false);
+//
+//
+//			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+//		}
 	}
 }

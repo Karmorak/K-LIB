@@ -101,7 +101,6 @@ public class Input {
 			@Override
 			public void invoke(long window, int codepoint) {
 				lastKey = (char) codepoint;
-				GSM.keyTyped(0, (char) codepoint);
                 StateManager.keyTyped(0, (char) codepoint);
 				if(updateButtons) Button.keyTyped(0, (char) codepoint);
 			}
@@ -129,14 +128,11 @@ public class Input {
 					keys[key] = action != GLFW_RELEASE;
 					
 					if(action == GLFW_RELEASE) {
-						GSM.keyUp(key, c);
                         StateManager.keyUp(key);
 					} else if (action == GLFW_PRESS) {//presss/tap the key
-						GSM.keyDown(key, action, modifier);
                         StateManager.keyDown(key, action, modifier);
 						if(updateButtons) Button.keyDown(key, action, modifier);
 					} else if (action == GLFW_REPEAT) {//hold the key
-						GSM.keyDown(key, action, modifier);
                         StateManager.keyDown(key, action, modifier);
 						if(updateButtons) Button.keyDown(key, action, modifier);
 					}
@@ -150,28 +146,19 @@ public class Input {
 		mousePosition = new GLFWCursorPosCallback() {
 			
 			public void invoke(long window, double xpos, double ypos) {
-				
-				
+
 				ypos = KLIB.graphic.Height() - ypos;
-				
-				float oldx = mouse.getX();
-				float oldy = mouse.getY();
-//				System.out.println("x " + xpos + " : y " + ypos);
-				if(oldx != xpos) {
-					mouse.setX((float)xpos);
+
+                if (mouse.getX() != xpos)
 					mouseMovedX = true;
-				}
-				if(oldy != ypos) {
-					mouse.setY((float)ypos);
+                if (mouse.getY() != ypos)
 					mouseMovedY = true;
-				}
-				
+                mouse.set((float) xpos, (float) ypos);
+
 				if(updateButtons) Button.mouseMoved((int)mouse.getX(),(int) ( mouse.getY()));
-				GSM.mouseMoved((int)mouse.getX(),(int) mouse.getY());
                 StateManager.mouseMoved((int) mouse.getX(), (int) mouse.getY());
 				if(mouseDown) {
 					if(updateButtons) Button.touchDragged((int)mouse.getX(), (int) mouse.getY(), 0);
-					GSM.touchDragged((int)mouse.getX(), (int) mouse.getY(), 0);
                     StateManager.touchDragged((int) mouse.getX(), (int) mouse.getY(), 0);
 					mouseDragged = true;
 				}
@@ -183,23 +170,19 @@ public class Input {
 			public void invoke(long window, int button, int action, int mods) {
 				buttons[button] = action != GLFW_RELEASE;
 				if(action != GLFW_RELEASE) {
-					GSM.touchDown(mouse.getX(), mouse.getY(), action, button);
                     StateManager.touchDown(mouse.getX(), mouse.getY(), action, mods);
 					mouseDown = true;
 				} else {
                     StateManager.touchUp(mouse.getX(), mouse.getY(), action, mods);
-					GSM.touchUp(mouse.getX(), mouse.getY(), action, mods);
 					if(updateButtons) Button.touchUp((int)mouse.getX(), (int)mouse.getY(), action, mods);
 					mouseDown = false;
 					if(!mouseDragged) {
 						if(updateButtons) Button.touchDown((int)mouse.getX(),(int) mouse.getY(), action, mods);
                         StateManager.tap(mouse.getX(), mouse.getY(), action, button);
-						GSM.tap(mouse.getX(), mouse.getY(), action, button);
 					} else {
 						mouseDragged = false;
 						if(updateButtons) Button.touchDown((int)mouse.getX(),(int) mouse.getY(), action, mods);
                         StateManager.tap(mouse.getX(), mouse.getY(), action, button);
-						GSM.tap(mouse.getX(), mouse.getY(), action, button);
 					}
 				}
 			}
@@ -215,9 +198,6 @@ public class Input {
                     finalX = offset_y;
                     finalY = 0;
                 }
-
-                GSM.scrolled(finalY);
-                GSM.scrolled(finalX, finalY);
                 StateManager.scrolled(finalX, finalY);
                 scrolled.set((float) offset_x, (float) offset_y);
 			}
@@ -247,6 +227,7 @@ public class Input {
 		mouseButtons.free();
 		mousePosition.free();
 		mouseScroll.free();
+        keyboard_chars.free();
 	}
 
 
