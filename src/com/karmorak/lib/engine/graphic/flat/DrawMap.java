@@ -800,11 +800,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 //	}
 
 
-
-	
-	
-	
-	public DrawMap drawLine(Color c, int x0, int y0, int x1, int y1) {
+    public DrawMap drawLine(Colorable c, int x0, int y0, int x1, int y1) {
 
 		int dx = Math.abs(x1 - x0);
 	    int sx = x0 < x1 ? 1 : -1;
@@ -813,7 +809,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 	    int err = dx + dy;
 
 	    while (true) {
-	    	drawPixel(x0, y0, c);
+            drawPixel(x0, y0, c.toInt());
 	    	if (x0 == x1 && y0 == y1) break;
 
 	    	int e2 = 2*err;
@@ -1565,54 +1561,141 @@ public class DrawMap extends TextureConstruct implements Renderable {
         this.buffer_created = false;
 		create();
         getBuffer().rewind();
-//		ImageLoader.DEBUGBUFFER(20, 20, target_width, getBuffer());
 		int textureId = getID();
-
 		if (textureId <= 0) {
-			System.err.println("Fehler: saveRenderImage abgebrochen, da Textur-ID ungültig: " + textureId);
+            System.err.println("Fehler: setRenderImage abgebrochen, da Textur-ID ungültig: " + textureId);
 			return null;
 		}
 		setSize(img_width, img_height);
 		setPosition(x, y);
-
+        // 1. Viewport & Projektion für das Zielbild einrichten
+        glViewport(0, 0, target_width, target_height);
 		SHADER.bind();
+        SHADER.loadProjectionMatrix(target_width, target_height);
+        SHADER.load2DColor(ColorPreset.WHITE.toColor(), 0f); // 0f = Originalfarben ohne Tint
+        // 2. Instanz-Attribute (1 Sprite) in den Instance-VBO schreiben
+        FloatBuffer fb = BufferUtils.createFloatBuffer(InstanceBuffer.FLOATS_PER_INSTANCE);
+        fb.put((float) x);
+        fb.put((float) y);
+        fb.put((float) img_width);
+        fb.put((float) img_height);
+        fb.put(rotation.getZ());
+        fb.put(flipX ? -1.0f : 1.0f);
+        fb.put(flipY ? -1.0f : 1.0f);
+        fb.flip();
+        glBindBuffer(GL_ARRAY_BUFFER, InstanceBuffer.getVboId());
+        glBufferSubData(GL_ARRAY_BUFFER, 0, fb);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        // 3. Rendern
 		glBindVertexArray(QUAD.getVAO());
 		glEnableVertexAttribArray(0);
 		glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
+        glEnableVertexAttribArray(3);
+        glEnableVertexAttribArray(4);
+        glEnableVertexAttribArray(5);
 		glDisable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, getID());
-
-//		SHADER.loadTransformationMatrix(translatePosition(), translateBounds(), rotation, flipX, flipY);
-        SHADER.loadTransformation((int) getX(), (int) getY(), (int) getSourceWidth(), (int) getSourceHeight(), rotation.getZ(), 1f, flipX, flipY);
-//		if (overlayColor != null)
-        SHADER.load2DColor(ColorPreset.RED.toColor(), 0.5f);
-
-
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glDrawArraysInstancedBaseInstance(GL_TRIANGLE_STRIP, 0, 4, 1, 0);
         glFlush();
-        glFinish(); // Warten, bis die GPU wirklich fertig ist
-
-        // 7. LESEN (Vom BACK-Buffer, aber sicherheitshalber explizit)
+        glFinish(); // Sicherstellen, dass die GPU fertig gezeichnet hat
+        // 4. Pixel vom Backbuffer lesen
         glReadBuffer(GL_BACK);
 		ByteBuffer buffer = BufferUtils.createByteBuffer(target_width * target_height * DEFAULT_BPP);
-		glPixelStorei(GL_PACK_ALIGNMENT, 1); // set alignment of data in memory (this time pack alignment; a good thing to do before glReadPixels)
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
 		glReadPixels(target_x, target_y, target_width, target_height, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-
 		buffer.rewind();
-//		ImageLoader.DEBUGBUFFER(20, 20, target_width, buffer);
-
+        // Aufräumen
 		glEnable(GL_DEPTH_TEST);
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(2);
+        glDisableVertexAttribArray(3);
+        glDisableVertexAttribArray(4);
+        glDisableVertexAttribArray(5);
 		glBindVertexArray(0);
 		SHADER.unbind();
-
+        // Bilddaten übernehmen
 		set(target_width, target_height, buffer);
+        return this;
+    }
 
+    public DrawMap setRenderImageFBO(int x, int y, int img_width, int img_height, int target_width, int target_height) {
+        this.buffer_changed = true;
+        this.buffer_created = false;
+//		create();
+        getBuffer().rewind();
+
+        // 1. FBO & Ziel-Textur erzeugen
+        int fboId = glGenFramebuffers();
+        int renderTextureId = generateTextureID();
+        glBindTexture(GL_TEXTURE_2D, renderTextureId);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, target_width, target_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer) null);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        // 2. Textur als Renderziel an das FBO hängen
+        glBindFramebuffer(GL_FRAMEBUFFER, fboId);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderTextureId, 0);
+        // 3. Viewport auf die exakte Zielgröße setzen (z. B. 4K)
+        glViewport(0, 0, target_width, target_height);
+        glClearColor(0, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        // 4. Dein Bild wie gewohnt hineinrendern (skaliert und zentriert)
+        // ... [Shader binden, Projektionsmatrix auf target_width/height, Quad zeichnen] ...
+
+        if (renderTextureId <= 0) {
+            System.err.println("Fehler: setRenderImage abgebrochen, da Textur-ID ungültig: " + renderTextureId);
+            return null;
+        }
+        setSize(img_width, img_height);
+        setPosition(x, y);
+
+        FloatBuffer fb = BufferUtils.createFloatBuffer(InstanceBuffer.FLOATS_PER_INSTANCE);
+        fb.put((float) x);
+        fb.put((float) y);
+        fb.put((float) img_width);
+        fb.put((float) img_height);
+        fb.put(rotation.getZ());
+        fb.put(flipX ? -1.0f : 1.0f);
+        fb.put(flipY ? -1.0f : 1.0f);
+        fb.flip();
+        glBindBuffer(GL_ARRAY_BUFFER, InstanceBuffer.getVboId());
+        glBufferSubData(GL_ARRAY_BUFFER, 0, fb);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        SHADER.bind();
+        SHADER.loadProjectionMatrix(target_width, target_height);
+        SHADER.load2DColor(ColorPreset.WHITE.toColor(), 0f); // 0f = Originalfarben ohne Tint
+
+        glBindVertexArray(QUAD.getVAO());
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
+        glEnableVertexAttribArray(3);
+        glEnableVertexAttribArray(4);
+        glEnableVertexAttribArray(5);
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, getID());
+        glDrawArraysInstancedBaseInstance(GL_TRIANGLE_STRIP, 0, 4, 1, 0);
+        glFlush();
+        glFinish(); // Sicherstellen, dass die GPU fertig gezeichnet hat
+
+        // 5. Pixel direkt aus dem FBO auslesen
+        ByteBuffer buffer = BufferUtils.createByteBuffer(target_width * target_height * DEFAULT_BPP);
+        glReadPixels(0, 0, target_width, target_height, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+        buffer.rewind();
+        // 6. Aufräumen (FBO & temporäre Textur löschen, Default-Framebuffer wiederherstellen)
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDeleteTextures(renderTextureId);
+        glDeleteFramebuffers(fboId);
+        // Fertiges Bild übernehmen
+        set(target_width, target_height, buffer);
 		return this;
 	}
 	
@@ -1690,24 +1773,17 @@ public class DrawMap extends TextureConstruct implements Renderable {
 
 	@Override
     public void renderManual(FloatBuffer buffer, int startOffset, int spriteCount, TextureShader shader) {
-		if(!QUAD.isCreated()) QUAD.create();
-		if(!SHADER.isCreated())  SHADER.create();
 
         if (spriteCount <= 0) return;
 
-		// 1. Einmal binden für alle Instanzen dieser Textur
+        create();
+
 		glBindTexture(GL_TEXTURE_2D, getID());
-
-        buffer.position(startOffset);
-
-        int prevLimit = buffer.limit();
-        buffer.limit(startOffset + (spriteCount *
-                InstanceBuffer.FLOATS_PER_INSTANCE));
-        glBindBuffer(GL_ARRAY_BUFFER, InstanceBuffer.getVboId());
-        glBufferSubData(GL_ARRAY_BUFFER, 0, buffer);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        buffer.limit(prevLimit);
-        glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, spriteCount);
+        if (!overlayColor.equals(ColorPreset.WHITE.toColor())) {
+            shader.load2DColor(ColorPreset.WHITE.toColor(), overlayColorIntensity);
+        }
+        // Rendert direkt den gewünschten Bereich aus dem bereits befüllten VBO
+        glDrawArraysInstancedBaseInstance(GL_TRIANGLE_STRIP, 0, 4, spriteCount, startOffset);
     }
 
 }

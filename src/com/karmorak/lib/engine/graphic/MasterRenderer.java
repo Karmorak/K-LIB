@@ -113,22 +113,13 @@ public class MasterRenderer {
 
 	}
 
-	private static class BatchDrawCall {
-		int startOffset; // Startindex im FloatBuffer
-		int elementCount; // Anzahl der Sprites (4 Floats pro Sprite)
-
-		public BatchDrawCall(int startOffset) {
-			this.startOffset = startOffset;
-			this.elementCount = 0;
-		}
-	}
-
 	public void create() {
 		enableCulling();
 		if(!shader.isCreated()) shader.create();
 //		terrainRenderer.create(); /* not in use */
 		Renderable.init();
 		textureShader = Renderable.getShader();
+
 		InstanceBuffer.init(Texture.getVAO());
 
 		System.out.println("w5-2-1");
@@ -140,6 +131,7 @@ public class MasterRenderer {
 		glClearColor(backgroundColor.getX(), backgroundColor.getY(), backgroundColor.getZ(), 0f);
 
 		textureShader.bind();
+		textureShader.load2DColor(ColorPreset.WHITE, 0f);
 
 		if (updateWindow) {
 			textureShader.loadProjectionMatrix((int) KLIB.graphic.Width(), (int) KLIB.graphic.Height());
@@ -366,12 +358,16 @@ public class MasterRenderer {
 	}
 
 	public void process(TextureConstruct texture, int pos_x, int pos_y, int size_x, int size_y, int layer) {
+		process(texture, (float) pos_x, (float) pos_y, (float) size_x, (float) size_y, layer);
+	}
+
+	public void process(TextureConstruct texture, float pos_x, float pos_y, float size_x, float size_y, int layer) {
 		LinkedHashMap<TextureConstruct, SpriteDataList> map = layerBatches.computeIfAbsent(layer, k -> new LinkedHashMap<>());
 		SpriteDataList list = map.computeIfAbsent(texture, k -> new SpriteDataList());
 
 		list.add(
-				(float) pos_x,
-				(float) pos_y,
+				pos_x,
+				pos_y,
 				size_x * texture.getScale(),
 				size_y * texture.getScale(),
 				texture.getRotation().getZ(),

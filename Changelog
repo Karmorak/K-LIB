@@ -275,3 +275,11 @@ v. 1.0.0 r30 (25.02.2026)
     - rewrite of the Rendering pipeline with MasterRenderer
         - processTexture and similar methods got removed, everything now works under process(..)
         - Batch Rendering is now more efficent than ever using float buffers
+  v 1.3.1 (13.09.2026)
+    - updated to lwjgl 3.4.3 and using JDK 25.0.4
+    - fixed bug, when no other texture is loaded, the font/buttons are not visible
+    - Diagramm is working again
+    - DrawMap can now be processed again
+    - GlobalInput Events now execute through StateManager
+    - DrawMap.saveRenderImage works
+    - added DrawMap.saveRenderImageFBO(..)

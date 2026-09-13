@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
 import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
 import com.karmorak.lib.gamestate.GSM;
+import com.karmorak.lib.gamestate.StateManager;
 
 public class GlobalInput implements NativeKeyListener {
 	
@@ -25,7 +26,7 @@ public class GlobalInput implements NativeKeyListener {
 		
 		
 		keys.add((Integer)e.getKeyCode());
-		GSM.globalkeyDown(e);
+		StateManager.globalkeyDown(e);
 	}
 
 		public void nativeKeyTyped(NativeKeyEvent e) {
@@ -35,7 +36,7 @@ public class GlobalInput implements NativeKeyListener {
 		public void nativeKeyReleased(NativeKeyEvent e) {
 //			System.out.println("Key Released: " + NativeKeyEvent.getKeyText(e.getKeyCode()));
 			keys.remove((Integer)e.getKeyCode());
-			GSM.globalkeyUp(e);
+			StateManager.globalkeyUp(e);
 		}
 
 	

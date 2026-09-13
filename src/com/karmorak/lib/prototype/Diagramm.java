@@ -24,9 +24,7 @@ public class Diagramm {
 	ArrayList<Button> horizontal_b;
 	
 	ArrayList<Button> index_buttons;
-	
-	
-	
+
 	HashMap<String, ArrayList<Vector2>> datas;
 	HashMap<String, Color> colors;
 	
@@ -307,11 +305,10 @@ public class Diagramm {
 		double min_horizontal_raster = MathTools.getMinPlacevalue(min_horizontal);
 		
 		double max_horizontal_digits = MathTools.getMinPlacevalue(max_horizontal) +1;
-		double max_horizontal_raster = Math.ceil(max_horizontal / max_horizontal_digits) * max_horizontal_digits;	
-		
-		
-		
-		for(float i = 0.2f; i <= 1f; i+=0.2) {
+		double max_horizontal_raster = Math.ceil(max_horizontal / max_horizontal_digits) * max_horizontal_digits;
+
+
+        for (float i = 0.2f; i <= 1f; i += 0.2f) {
 			
 			
 			float val = (float) (i*max_vertical_raster);
@@ -336,9 +333,9 @@ public class Diagramm {
 				int x = (int) ((i / (horizontal_values.size()-1f) * x_width));		
 				Button horizontal = new Button("" + (int) f);
 				horizontal.setHeight(font_size);											
-				horizontal_b.add(horizontal);					
-				
-				d_columns.drawLine(Color.BLACK(), x + line_inbound_left , 0, x + line_inbound_left, y_height);
+				horizontal_b.add(horizontal);
+
+                d_columns.drawLine(ColorPreset.BLACK, x + line_inbound_left, 0, x + line_inbound_left, y_height);
 			}		
 			
 			
@@ -575,17 +572,17 @@ public class Diagramm {
 		}
 
 
-//		for (int i = 0; i < lines.size(); i++) {
-//			renderer.process(lines.get(i), pos.getX() + background_abs_left + line_inbound_left, pos.getY() + background_abs_bottom + b_add + line_inbound_bottom, layer + 2 + i);
-//		}
-//
-//		if(columns != null) {
-//			renderer.process(columns, pos.getX() + background_abs_left, pos.getY() + background_abs_bottom + b_add, layer +1);
-//		}
-//
-//		if(background!= null)
-//			renderer.process(background, pos.getX(), pos.getY(), background.getWidth(), background.getHeight() + b_add, layer);
-//
+        for (int i = 0; i < lines.size(); i++) {
+            renderer.process(lines.get(i), pos.getX() + background_abs_left + line_inbound_left, pos.getY() + background_abs_bottom + b_add + line_inbound_bottom, layer + 2 + i);
+        }
+
+        if (columns != null) {
+            renderer.process(columns, pos.getX() + background_abs_left, pos.getY() + background_abs_bottom + b_add, layer + 1);
+        }
+
+        if (background != null)
+            renderer.process(background, pos.getX(), pos.getY(), background.getWidth(), background.getHeight() + b_add, layer);
+
 		
 	}
 	

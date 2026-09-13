@@ -36,28 +36,28 @@ public class KLIB {
 //	 	[X] input kann nur Vertical scrollen
 //	 	[X] texture filter einstellbar machen
 //	 	[X] StatusBar.setAlpha ist Buggy
+// 	 	[X] Button tooltips
+//		[X] add ability to skip Frames/Updates and to call init again as long it doesn't return true in StateManager
+// 		[X] Textable größe änderbar machen
 //	 	[ ] ownFont von einer bitmap font konvertieren
-//	 	[X] Button tooltips
 //	 	[ ] ganze ordner von A nach B kopieren
 //	 	[ ] Button.Background fixen oder entfernen
 //		[ ] click reaktion also wenn mann klickt das der button nur kurz die farbe/größe ändert
 //	 	[ ] text max width eine  option hinzufügen das die linie nach unten weitergeführt wird
-//		[ ] text new line und tab (/n und /t) gängig mache
-//		[ ] MasterRenderer ist momentan in Running müsste aber pro Window sein da jedes Window einen eigenen Renderer braucht
-//				solange ich nur ein Window nutze ist das aber nicht so schlimm.
+//		[ ] text new line und tab (/n und /t) gängig machen
+//		[ ] MasterRenderer ist momentan in Running müsste aber pro Window sein da jedes Window einen eigenen Renderer braucht solange ich nur ein Window nutze ist das aber nicht so schlimm.
 //		[ ] es gibt FileUtils und FileManager beide vereinen ...weniger verwirrung
 //		[ ] add LanguageLoader System
-//		[X] add ability to skip Frames/Updates and to call init again as long it doesn't return true in StateManager
 //		[ ] make the textures for Scrollable and Textable static if want to use custom texture it should get loaded so afterwise
-	//  [ ] textable ohne hintergrund
-	//	[X] Textable größe änderbar machen
-	// 	[ ] scrollable zu regler machen(funktion)
-	//  [ ] StatusBar modernisieren
+//  	[ ] textable ohne hintergrund
+// 		[ ] scrollable zu regler machen(funktion)
+//  	[ ] StatusBar modernisieren
+//  	[ ] GlobalInput mit in Input integrieren und erneuern
 
 
-	public static final String VERSION = "1.3.0";
-	public static final int RELEASE = 33;
-	public static final String DATE = "11.09.2026";
+	public static final String VERSION = "1.3.1";
+	public static final int RELEASE = 34;
+	public static final String DATE = "13.09.2026";
 	/** 0 = off, 1 = on*/
 	public static int DEBUG_LEVEL;
 	private static boolean isINIT = false;
@@ -70,7 +70,7 @@ public class KLIB {
 			
 	public static final String[] VERSION_HISTORY = {"01", "02", "03", "0.4.0", "0.4.1", "0.4.2", "0.4.3", "0.5.0", "0.6.0", "0.6.1", "0.7.0", "0.7.1", "0.7.2", "0.7.3", "0.7.4",
 													"0.7.5", "0.7.6", "0.8.0", "0.8.0.1", "0.8.0.2", "0.8.0.3", "0.8.1", "0.8.2", "pre1 0.9.0", "pre2 0.9.0", "pre3 0.9.0", "0.9.0", "0.9.1", "0.9.2",
-			"1.0.0", "1.1.0", "1.1.1", "1.2.0"};
+			"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.3.1"};
 	
 	public static String APP_NAME;
 	public static String APP_VERSION;

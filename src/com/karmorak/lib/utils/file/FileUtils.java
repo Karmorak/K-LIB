@@ -139,7 +139,7 @@ public class FileUtils {
     public static String[] selectFileLimited(int limit, boolean smaller_allowed, boolean larger_allowed) {
 
         String result = TinyFileDialogs.tinyfd_openFileDialog(
-                "Wähle 4 Bilder", "", null, null, true
+				"Wähle 4 Bilder", "", null, "", true
         );
         if (result == null) {
             return null;
@@ -477,8 +477,32 @@ public class FileUtils {
 	 * 
 	 */	
 	public static void writeToFile(File f, String data, int mode, int line) throws IOException {				
-		writeToFile(f, new String[] {data}, mode, line); 		
-	}	
+		writeToFile(f, new String[] {data}, mode, line);
+	}
+
+	/**
+	 * @param f    File
+	 * @param data data
+	 * @param mode 0 = replace whole file;
+	 *             1 = append;
+	 *             2 = replace line on @param line when line is <0 than its appended
+	 * @throws IOException exception	 *
+	 */
+	public static void writeToFile(File f, String data, int mode) throws IOException {
+		writeToFile(f, new String[]{data}, mode, 0);
+	}
+
+	/**
+	 * @param f    File
+	 * @param data data
+	 *             0 = replace whole file;
+	 *             1 = append;
+	 *             2 = replace line on @param line when line is <0 than its appended
+	 * @throws IOException exception	 *
+	 */
+	public static void writeToFile(File f, String data) throws IOException {
+		writeToFile(f, data, 0, 0);
+	}
 
 	public static void writeToFile(File f, String[] data) throws IOException {				
 		writeToFile(f, data, 0, 0);			
@@ -495,12 +519,12 @@ public class FileUtils {
 			
 			File path = new File(f.getParent());
 			path.mkdirs();
-						
+
 			return f.createNewFile();
 		}
 		return f.exists();
 	}
-	
+	/** return true if the file exists or got created */
 	public static boolean checkFile(File f, boolean create) {
 		if(!f.exists()) {			
 			if(create) {			
@@ -519,7 +543,6 @@ public class FileUtils {
 					return false;
 				}
 			}
-			
 		} else {
 			return true;
 		}

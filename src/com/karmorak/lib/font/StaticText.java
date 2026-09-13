@@ -73,20 +73,48 @@ class StaticText {
 
     }
 
-    public record chardata(Color color, Identifier ident) {
-    }
-
-
-    public StaticText(OwnFont font, String name) {
+    public StaticText(OwnFont font, String name, Colorable base_color) {
         this.font = font;
         this.name = OwnChar.createOwnChars(name, font);
         this.stringed_name = name;
 
-        color = ColorPreset.BLACK.toColor();
+        this.color = base_color.toColor();
 
 //        longest_line_width_raw = font.getWordBounds_Raw(name).getWidth();
 
         this.pos = new Vector2i(0, 0);
+
+        FontCache fontCache = caches.get(font.getPath());
+
+        if (fontCache == null) {
+            fontCache = new FontCache();
+            caches.put(font.getPath(), fontCache);
+        }
+
+        ArrayList<Identifier> needed = new ArrayList<>();
+        for (OwnCharData oc : this.name) {
+            if (fontCache.getCachedTexture(color, oc.getIdentifier()) == null) {
+                needed.add(oc.getIdentifier());
+            }
+        }
+        //load the needed chars into the cache
+        if (!needed.isEmpty()) {
+            DrawMap m;
+            if (fontCache.font_colors.containsKey(color))
+                m = fontCache.font_colors.get(color);
+            else {
+                m = font.colorize(color);
+                fontCache.font_colors.put(color, m);
+            }
+            for (Identifier identifier : needed) {
+                CharTexture reg = new CharTexture(m, font.DATA.getRegion(identifier));
+                reg.create();
+                fontCache.addCharToCache(color, identifier, reg);
+            }
+        }
+        changed[0] = false;
+        changed[1] = false;
+        changed[2] = false;
     }
 
 
@@ -144,13 +172,6 @@ class StaticText {
             if (info[1] < abs) abs = (int) info[1];
         }
         return abs;
-    }
-
-    public void setColor(Colorable c) {
-        if (!c.equals(color)) {
-//            color = c.toColor();
-            changed[1] = true;
-        }
     }
 
     public Color getColor() {
@@ -250,7 +271,7 @@ class StaticText {
         DrawMap in = new DrawMap(font.getURLPath());
 
 //		System.out.println(name[0] + " : " + name_width + " : " + name_height);
-        DrawMap out = new DrawMap(new Vector2(getWidth(), getHeight()), Color.ALPHA());
+        DrawMap out = new DrawMap(new Vector2(getWidth(), getHeight()), ColorPreset.ALPHA);
 
 
         int pos_x = 0;
@@ -264,9 +285,9 @@ class StaticText {
             for (int x = 0; x < charRegion.getWidth(); x++) {
                 for (int y = 0; y < charRegion.getHeight(); y++) {
 //						System.out.println(""+c + " " + (charRegion.getX() + x) + " " +(charRegion.getY()+ (charRegion.getHeight()-1-y)));
-                    Color c2;
-                    c2 = in.getPixel((int) (charRegion.getX() + x), (int) (charRegion.getY() + (charRegion.getHeight() - y)));
-                    if (c2 != null && c2.getAlpha() > 180)
+                    Color c2 = new Color(in.getPixelInt((int) (charRegion.getX() + x), (int) (charRegion.getY() + (charRegion.getHeight() - y))));
+
+                    if (c2.getAlpha() > 180)
                         out.drawPixel(pos_x + x, pos_y - y - (int) data[1], color);
                 }
             }
@@ -315,63 +336,12 @@ class StaticText {
 
     private void update(int pos_x, int pos_y) {
         FontCache fontCache = caches.get(font.getPath());
-        float char_spacing = font.char_spacing * font.getScale();
-        float all_scale = getTotalScale();
 
-        if (fontCache == null) {
-            caches.put(font.getPath(), new FontCache());
-            fontCache = caches.get(font.getPath());
-        }
-        //	cache					name
-        if (fontCache.isEmpty()) {
-            ArrayList<Identifier> needed = new ArrayList<>();
-            float width = 0;
-            int max_height = 0;
-            for (OwnCharData oc : name) {
-                float[] data = font.DATA.getInfo(oc.getIdentifier());
-
-                Vector2 charBounds = font.getCharSize(oc.getIdentifier());
-
-                int e_x = (int) (pos_x + (width * scale));
-
-                int e_height = (int) (charBounds.getHeight() * scale);
-                if (e_height > max_height) max_height = e_height;
-                float e_y = pos_y + (data[1] * all_scale);
-
-                if (fontCache.getCachedTexture(color, oc.getIdentifier()) == null) {
-                    needed.add(oc.getIdentifier());
-                }
-
-                oc.setScale(all_scale);
-                oc.setPosition(e_x, (int) e_y);
-                width += charBounds.getWidth() + char_spacing;
-            }
-            //load the needed chars into the cache
-            if (!needed.isEmpty()) {
-                DrawMap m;
-                if (fontCache.font_colors.containsKey(color))
-                    m = fontCache.font_colors.get(color);
-                else {
-                    m = font.colorize(color);
-                    fontCache.font_colors.put(color, m);
-                }
-                for (Identifier identifier : needed) {
-                    CharTexture reg = new CharTexture(m, font.DATA.getRegion(identifier));
-                    reg.create();
-                    fontCache.addCharToCache(color, identifier, reg);
-                }
-            }
-            //-----------------------------------
-            changed[0] = false;
-            changed[1] = false;
-            changed[2] = false;
-            changed[3] = false;
-            changed[4] = false;
-            changed[5] = false;
-            changed[6] = false;
-            changed[7] = false;
-            return;
-        }
+//        if(changed[1]) { //Color
+//            for (OwnCharData oc : this.name) {
+//
+//            }
+//        }
 
         if (changed[3]) {
             update_c3_scale(fontCache, pos_x, pos_y);
@@ -384,11 +354,8 @@ class StaticText {
             update_c6_y(pos_y);
         }
     }
-
     public static void update() {
-//        for (Text t : texts) {
-//            t.update(t.pos.getX(), t.pos.getY());
-//        }
+
     }
 
     /**
@@ -421,7 +388,6 @@ class StaticText {
     private void update_c3_scale(FontCache fontCache, int pos_x, int pos_y) {
         float all_scale = getTotalScale();
         float char_spacing = font.char_spacing * font.getScale();
-        float y = pos_y;
         float width = 0;
         int max_height = 0;
 
@@ -435,7 +401,7 @@ class StaticText {
 
             int e_height = (int) (charBounds.getHeight() * scale);
             if (e_height > max_height) max_height = e_height;
-            float e_y = y + (data[1] * all_scale);
+            float e_y = pos_y + (data[1] * all_scale);
 
             oc.setScale(all_scale);
             oc.setPosition(e_x, (int) e_y);

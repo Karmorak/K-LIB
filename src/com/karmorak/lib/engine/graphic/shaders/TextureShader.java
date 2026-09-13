@@ -20,6 +20,7 @@ import static org.lwjgl.opengl.GL20.glShaderSource;
 import static org.lwjgl.opengl.GL20.glValidateProgram;
 
 import com.karmorak.lib.Color;
+import com.karmorak.lib.Colorable;
 import com.karmorak.lib.engine.graphic.shaders.ShaderProgramm;
 import com.karmorak.lib.math.Matrix4;
 import com.karmorak.lib.math.Vector2;
@@ -107,6 +108,11 @@ public class TextureShader extends ShaderProgramm {
 
 
     public void load2DColor(Color color, float intensity) {
+        this.setUniform("u_color", color.Vec4f());
+        this.setUniform("u_color_intensity", intensity);
+    }
+
+    public void load2DColor(Colorable color, float intensity) {
         this.setUniform("u_color", color.Vec4f());
         this.setUniform("u_color_intensity", intensity);
     }
