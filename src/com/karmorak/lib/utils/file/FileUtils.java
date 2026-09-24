@@ -26,6 +26,7 @@ import javax.imageio.ImageIO;
 
 import com.karmorak.lib.KLIB;
 
+import com.karmorak.lib.engine.graphic.flat.TextureConstruct;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.stb.STBImageWrite;
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
@@ -54,6 +55,11 @@ public class FileUtils {
         );
     }
 
+	public enum WRITE_MODE {
+		// 0			1			2					new			3
+		REPLACE_FILE, APPEND, REPLACE_FIRST_LINE, REPLACE_LINES, PUT_BETWEEN;
+
+	}
 
 
 	public static String[] selectFiles() {
@@ -135,6 +141,10 @@ public class FileUtils {
             return false;
         }
     }
+
+	public static boolean isImageSupported(String path) {
+		return TextureConstruct.isImageSupported(path);
+	}
 
     public static String[] selectFileLimited(int limit, boolean smaller_allowed, boolean larger_allowed) {
 
@@ -388,128 +398,315 @@ public class FileUtils {
         }
 	    return true;
 	}
-	
-	
-	
 
-	
-	/**
-     * @param f File
-     * @param data_ data
-     * @param mode
-     * 0 = replace whole file;
-     * 1 = append;
-     * 2 = replace line on @param line when line is <0 than its appended
-     * @param line which line
-	 *
-     * @throws IOException exception	 *
-	 */	
+
+	@Deprecated
 	public static void writeToFile(File f, String[] data_, int mode, int line) throws IOException {
-
-		ArrayList<String> lines = null;
-        if (mode == 0) {
-			checkFile(f);
-        } else {
-            lines = readFile(f);
-		}
-		
-		BufferedWriter bw = new BufferedWriter(new FileWriter(f));
-		
-		
-		String content = "";
-		
-		if(mode == 0) {
-            for (String s : data_) content = content + s + "\n";
-				
-		} else if (mode == 1 || (mode == 2 && line < 0)) {
-            for (String s : lines) content = content + s + "\n";
-            for (String s : data_) content = content + s + "\n";
-			
-		} else if (mode == 2) {				
-			boolean found = false;
-			for (int i = 0; i < lines.size(); i++) {
-				if(i == line)  {
-                    for (String s : data_) content = content + s + "\n";
-					found = true;
-				} else {
-					content = content + lines.get(i) + "\n";
-				}
-			}	
-			if(!found)
-                for (String s : data_) content = content + s + "\n";
+		if (mode == 0) {
+			writeToFile(f, data_, WRITE_MODE.REPLACE_FILE, data_.length);
+		} else if (mode == 1) {
+			writeToFile(f, data_, WRITE_MODE.APPEND, data_.length);
+		} else if (mode == 2) {
+			writeToFile(f, data_, WRITE_MODE.REPLACE_FIRST_LINE, data_.length);
 		} else {
-			if(line < 0) {
-                for (String s : lines) content = content + s + "\n";
-                for (String s : data_) content = content + s + "\n";
-				
-			} else if(line >= lines.size()){
-                for (String s : lines) content = content + s + "\n";
-//				for (int i = 0; i < line - lines.size(); i++)
-//					content = content + "\n";
-                for (String s : data_) content = content + s + "\n";
-				
-			} else {
-				for (int i = 0; i < lines.size(); i++) {
-					if(i == line) {
+			writeToFile(f, data_, WRITE_MODE.APPEND, data_.length);
+		}
+	}
 
-                        for (String string : data_) content = content + string + "\n";
-						
-					} else 
-						content = content + lines.get(i) + "\n";				
+	public static void writeToFile(File f, String value, WRITE_MODE mode, int line) throws IOException {
+		writeToFile(f, new String[]{value}, mode, line);
+	}
+
+
+	public static void writeToFile(File f, ArrayList<String> value, WRITE_MODE mode, int line) throws IOException {
+
+		checkFile(f, true);
+
+		ArrayList<String> original = readFile(f);
+
+		StringBuilder output = new StringBuilder();
+
+		if (mode == null || mode == WRITE_MODE.APPEND
+				|| (mode == WRITE_MODE.REPLACE_FIRST_LINE && line < 0) //-1 means append
+				|| line >= original.size()) { //die linie liegt unterhalb des inhalts also wird einfach angehangen
+
+			for (String s : original) output.append(s).append("\n");
+			for (String s : value) output.append(s).append("\n");
+
+		} else if (mode == WRITE_MODE.REPLACE_FILE) {
+			for (String s : value) output.append(s).append("\n");
+		} else if (mode == WRITE_MODE.REPLACE_FIRST_LINE) {
+			for (int i = 0; i < original.size(); i++) {
+				if (i == line) {
+					for (String s : value) output.append(s).append("\n");
+				} else {
+					output.append(original.get(i)).append("\n");
+				}
+			}
+		} else if (mode == WRITE_MODE.PUT_BETWEEN) {
+
+			for (int i = 0; i < original.size(); i++) {
+				if (i == line) {
+					for (String s : value) output.append(s).append("\n");
+				}
+				output.append(original.get(i)).append("\n");
+			}
+
+		} else if (mode == WRITE_MODE.REPLACE_LINES) {
+			int a = 0;
+			for (int i = 0; i < original.size(); i++) {
+				if (i >= line && a < value.size()) {
+					output.append(value.get(a)).append("\n");
+					a++;
+				} else {
+					output.append(original.get(i)).append("\n");
+				}
+			}
+			for (int i = a; i < value.size(); i++) {
+				output.append(value.get(a)).append("\n");
+			}
+		} else {
+			for (String s : original) output.append(s).append("\n");
+			for (String s : value) output.append(s).append("\n");
+		}
+
+		BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+		bw.write(output.toString());
+		bw.close();
+	}
+
+
+	public static void writeToFile(File f, String[] value, WRITE_MODE mode, int line) throws IOException {
+
+		checkFile(f, true);
+
+		ArrayList<String> original = readFile(f);
+
+		StringBuilder output = new StringBuilder();
+
+		if (mode == null || mode == WRITE_MODE.APPEND
+				|| (mode == WRITE_MODE.REPLACE_FIRST_LINE && line < 0) //-1 means append
+				|| line >= original.size()) { //die linie liegt unterhalb des inhalts also wird einfach angehangen
+
+			for (String s : original) output.append(s).append("\n");
+			for (String s : value) output.append(s).append("\n");
+
+		} else if (mode == WRITE_MODE.REPLACE_FILE) {
+			for (String s : value) output.append(s).append("\n");
+		} else if (mode == WRITE_MODE.REPLACE_FIRST_LINE) {
+			for (int i = 0; i < original.size(); i++) {
+				if (i == line) {
+					for (String s : value) output.append(s).append("\n");
+				} else {
+					output.append(original.get(i)).append("\n");
+				}
+			}
+		} else if (mode == WRITE_MODE.PUT_BETWEEN) {
+
+			for (int i = 0; i < original.size(); i++) {
+				if(i == line)  {
+					for (String s : value) output.append(s).append("\n");
+				}
+				output.append(original.get(i)).append("\n");
+			}
+
+		} else if (mode == WRITE_MODE.REPLACE_LINES) {
+			int a = 0;
+			for (int i = 0; i < original.size(); i++) {
+				if (i >= line && a < value.length) {
+					output.append(value[a]).append("\n");
+					a++;
+				} else {
+					output.append(original.get(i)).append("\n");
+				}
+			}
+			for (int i = a; i < value.length; i++) {
+				output.append(value[i]).append("\n");
+			}
+		} else {
+			for (String s : original) output.append(s).append("\n");
+			for (String s : value) output.append(s).append("\n");
+		}
+
+		BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+		bw.write(output.toString());
+		bw.close();
+	}
+
+	@Deprecated
+	public static void writeToFile(File f, String[] value, WRITE_MODE mode, int line, int max_lines) throws IOException {
+
+		checkFile(f, true);
+
+		ArrayList<String> original = readFile(f);
+		StringBuilder output = new StringBuilder();
+
+		if (mode == null || mode == WRITE_MODE.APPEND
+				|| (mode == WRITE_MODE.REPLACE_FIRST_LINE && line < 0) //-1 means append
+				|| line >= original.size()) { //die linie liegt unterhalb des inhalts also wird einfach angehangen
+
+			for (String s : original) output.append(s).append("\n");
+			for (String s : value) output.append(s).append("\n");
+
+		} else if (mode == WRITE_MODE.REPLACE_FILE) {
+			for (String s : value) output.append(s).append("\n");
+		} else if (mode == WRITE_MODE.REPLACE_FIRST_LINE) {
+			for (int i = 0; i < original.size(); i++) {
+				if (i == line) {
+					for (String s : value) output.append(s).append("\n");
+				} else {
+					output.append(original.get(i)).append("\n");
+				}
+			}
+		} else if (mode == WRITE_MODE.PUT_BETWEEN) {
+
+			for (int i = 0; i < original.size(); i++) {
+				if (i == line) {
+					for (String s : value) output.append(s).append("\n");
+				}
+				output.append(original.get(i)).append("\n");
+			}
+
+		} else if (mode == WRITE_MODE.REPLACE_LINES) {
+			int a = 0;
+			for (int i = 0; i < original.size(); i++) {
+				if (max_lines == -1 || a < max_lines) {
+					if (i >= line && a < value.length) {
+						output.append(value[a]).append("\n");
+						a++;
+					} else {
+						output.append(original.get(i)).append("\n");
+					}
+				} else {
+					if (a != -1) {
+						for (int j = a; j < value.length; j++) {
+							output.append(value[j]).append("\n");
+						}
+						a = -1;
+					}
+					output.append(original.get(i)).append("\n");
+				}
+			}
+		} else {
+			for (String s : original) output.append(s).append("\n");
+			for (String s : value) output.append(s).append("\n");
+		}
+
+		BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+		bw.write(output.toString());
+		bw.close();
+	}
+
+	private static int[] getLinePos(ArrayList<String> file, String key) {
+		int open = -1;
+		int close = -1;
+		int line_open = -1;
+		int line_close = -1;
+
+		for (int i = 0; i < file.size(); i++) {
+			String line = file.get(i);
+			if (line.startsWith(key)) {
+				line_open = i;
+				break;
+			}
+		}
+
+		if (line_open == -1) {
+			return new int[]{-1, -1};
+		}
+
+		for (int i = line_open; i < file.size(); i++) {
+			String line = file.get(i);
+
+			for (char c : line.toCharArray()) {
+				if (c == '{') {
+					open++;
+				} else if (c == '}') {
+					close++;
+				}
+				if (close != -1 && open == close) {
+					line_close = i;
+					return new int[]{line_open, line_close};
 				}
 			}
 		}
-			
-		bw.write(content);	
-		bw.close();		
+		return new int[]{-1, -1};
 	}
-	
-	/**
-     * @param f f
-     * @param data data
-	 * @param mode  
-	 * mode 0 = replace whole file;  
-	 * mode 1 = append;  
-	 * mode 2 = replace line on @param line when line is <0 than its appended  
-     * @param line line
-	 *
-     * @throws IOException exception
-	 * 
-	 */	
+
+	@Deprecated
+	public static void writeToFile(File f, String[] value, WRITE_MODE mode, String key) throws IOException {
+
+		checkFile(f, true);
+
+		ArrayList<String> original = readFile(f);
+		StringBuilder output = new StringBuilder();
+
+		int[] line_pos = getLinePos(original, key);
+		int line_open = line_pos[0];
+		int line_close = line_pos[1];
+
+
+//		System.out.println(key + ": " + line_open + " " + line_close);
+		if (mode == null || mode == WRITE_MODE.APPEND
+				|| (mode == WRITE_MODE.REPLACE_FIRST_LINE && (key.isEmpty() || line_open == -1)) //-1 means append
+				|| line_open >= original.size()) { //die linie liegt unterhalb des inhalts also wird einfach angehangen
+
+			for (String s : original) output.append(s).append("\n");
+			for (String s : value) output.append(s).append("\n");
+
+		} else if (mode == WRITE_MODE.REPLACE_FILE) {
+			for (String s : value) output.append(s).append("\n");
+		} else if (mode == WRITE_MODE.REPLACE_FIRST_LINE) {
+			for (int i = 0; i < original.size(); i++) {
+				if (i == line_open) {
+					for (String s : value) output.append(s).append("\n");
+				} else {
+					output.append(original.get(i)).append("\n");
+				}
+			}
+		} else if (mode == WRITE_MODE.PUT_BETWEEN) {
+
+			for (int i = 0; i < original.size(); i++) {
+				if (i == line_open) {
+					for (String s : value) output.append(s).append("\n");
+				}
+				output.append(original.get(i)).append("\n");
+			}
+
+		} else if (mode == WRITE_MODE.REPLACE_LINES) {
+			int a = 0;
+			for (int i = 0; i < original.size(); i++) {
+				if (i == line_open + 2) {
+					for (String s : value) output.append(s).append("\n");
+				} else {
+					if (i > line_close || i <= line_open) {
+						output.append(original.get(i)).append("\n");
+					}
+				}
+			}
+		} else {
+			for (String s : original) output.append(s).append("\n");
+			for (String s : value) output.append(s).append("\n");
+		}
+
+		BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+		bw.write(output.toString());
+		bw.close();
+	}
+
+	@Deprecated
 	public static void writeToFile(File f, String data, int mode, int line) throws IOException {				
 		writeToFile(f, new String[] {data}, mode, line);
 	}
 
-	/**
-	 * @param f    File
-	 * @param data data
-	 * @param mode 0 = replace whole file;
-	 *             1 = append;
-	 *             2 = replace line on @param line when line is <0 than its appended
-	 * @throws IOException exception	 *
-	 */
+	@Deprecated
 	public static void writeToFile(File f, String data, int mode) throws IOException {
 		writeToFile(f, new String[]{data}, mode, 0);
 	}
 
-	/**
-	 * @param f    File
-	 * @param data data
-	 *             0 = replace whole file;
-	 *             1 = append;
-	 *             2 = replace line on @param line when line is <0 than its appended
-	 * @throws IOException exception	 *
-	 */
-	public static void writeToFile(File f, String data) throws IOException {
-		writeToFile(f, data, 0, 0);
-	}
-
+	@Deprecated
 	public static void writeToFile(File f, String[] data) throws IOException {				
 		writeToFile(f, data, 0, 0);			
-	}
-
-	public static void writeToFile(File f, String[] data_, int mode) throws IOException {				
-		writeToFile(f, data_, mode, -1);
 	}
 	
 	public static boolean checkFile(File f) throws IOException {
@@ -526,15 +723,18 @@ public class FileUtils {
 	}
 	/** return true if the file exists or got created */
 	public static boolean checkFile(File f, boolean create) {
-		if(!f.exists()) {			
-			if(create) {			
+
+		if (!f.exists()) {
+			if (create) {
 				try {
 					if(KLIB.DEBUG_LEVEL > 0)
 						System.out.println("File not existing creating new one in " +  f.getParent());
-					
-					File path = new File(f.getParent());
-					path.mkdirs();
+
+					File parent_path = new File(f.getParent());
+					parent_path.mkdirs();
+
 					f.createNewFile();
+
 					return true;
 				} catch (IOException e) {
 					if(KLIB.DEBUG_LEVEL >= 0)
@@ -543,6 +743,7 @@ public class FileUtils {
 					return false;
 				}
 			}
+
 		} else {
 			return true;
 		}
@@ -594,6 +795,18 @@ public class FileUtils {
 		} else {
 			return true;
 		}
+		return false;
+	}
+
+	public static boolean isFolderEmpty(String path) {
+		File f = new File(path);
+		if (!checkFile(f, false)) return true;
+		if (!f.isDirectory()) {
+			return false;
+		}
+		;
+
+		if (f.list().length == 0) return true;
 		return false;
 	}
 
@@ -675,5 +888,13 @@ public class FileUtils {
             e.printStackTrace();
         }
     }
-	
+
+	public static String getFileName_fromPath(String path) {
+		return path.substring(path.lastIndexOf("\\") + 1);
+	}
+
+	public static String getDirectory_fromPath(String path) {
+		return path.substring(0, path.lastIndexOf("\\")) + "\\";
+	}
+
 }

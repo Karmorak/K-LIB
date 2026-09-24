@@ -20,20 +20,15 @@ import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
 import static org.lwjgl.opengl.GL30.glBindVertexArray;
 import static org.lwjgl.opengl.GL46.*;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 import com.karmorak.lib.ColorPreset;
 import com.karmorak.lib.Colorable;
@@ -47,14 +42,13 @@ import org.lwjgl.BufferUtils;
 import com.karmorak.lib.Color;
 import com.karmorak.lib.KLIB;
 import com.karmorak.lib.engine.io.images.ImageLoader;
-import com.karmorak.lib.utils.PNGDecoder;
 import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
 
 @SuppressWarnings("ConstantValue")
 public class DrawMap extends TextureConstruct implements Renderable {
 
-	static int DEFAULT_BPP = 4;
+    final static int DEFAULT_BPP = 4;
 	
 	private int[] pixels;
 	private boolean buffer_changed = true, buffer_created = false;
@@ -62,7 +56,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 
 	private int ID = -1;
 	private URL src_path;
-	private int src_width, src_height, src_bpp;
+    private int src_width, src_height, src_bpp = DEFAULT_BPP;
 
 //	private TextureData DATA;
 	
@@ -85,17 +79,22 @@ public class DrawMap extends TextureConstruct implements Renderable {
 	void initData(TextureData data) {
 		src_width = data.getWIDTH();
 		src_height = data.getHEIGHT();
-		src_bpp = data.BPP;
 		src_path = data.getPATH();
 	}
+
+    void initData(int width, int height, URL Path) {
+        src_width = width;
+        src_height = height;
+        src_path = Path;
+    }
 
 	void initData(int width, int height, URL Path, int bpp) {
 		src_width = width;
 		src_height = height;
+        src_path = Path;
 		src_bpp = bpp;
-		src_path = Path;
 	}
-	
+
 	public DrawMap(URL path) {
         loadDrawMapURLNew(path, default_min_filter, default_mag_filter);
         init();
@@ -131,35 +130,33 @@ public class DrawMap extends TextureConstruct implements Renderable {
 	}
 
 	public DrawMap set(int width, int height, ByteBuffer src) {
-		initPixels(width, height, 4, src);
+        initPixels(width, height, src);
 		init();
 		buffer_created = true;
 		return this;
 	}
-	
-	public DrawMap(URL path, int texture_filter) {		
-		initPixels(path);		
-		init(texture_filter);	
+
+    public DrawMap(URL path, int texture_filter) {
+        loadDrawMapURLNew(path, texture_filter, texture_filter);
+        init();
 	}
-	
+
 	public DrawMap(int width, int height, ByteBuffer buffer) {
-		initPixels(width, height, 4, buffer);		
+        initPixels(width, height, buffer);
 		init();
-	} 
-	
+    }
+
 	public DrawMap(int width, int height, ByteBuffer buffer, int texture_filter) {
-		initPixels(width, height, 4, buffer);
+        initPixels(width, height, buffer);
 		init(texture_filter);
 	}
 
-	@Deprecated
 	public DrawMap(DrawMap map) {
-		initPixels(map.getSourceWidth(), map.getSourceHeight(), 4, ImageLoader.IntArrayToBuffer(map.src_width, map.src_height, map.pixels));
+        initPixels(map.getSourceWidth(), map.getSourceHeight(), ImageLoader.IntArrayToBuffer(map.src_width, map.src_height, map.pixels));
 		init();
 	}
 
 	public DrawMap(DrawMap map, Vector4i cut) {
-
 
 		buffer_cache = BufferUtils.createByteBuffer(cut.getWidth() * cut.getHeight() * DEFAULT_BPP);
 		pixels = new int[ cut.getWidth() * cut.getHeight()];
@@ -174,7 +171,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		buffer_cache.rewind();
 		buffer_changed = true;
 
-		initData(cut.getWidth(), cut.getHeight(), null, DEFAULT_BPP);
+        initData(cut.getWidth(), cut.getHeight(), null);
 		init();
 	}
 
@@ -229,47 +226,6 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		init();		
 	}
 
-	void initPixels(URL path) throws NullPointerException {
-		int width = -1, height = -1;
-
-		try (InputStream stream = path.openStream()) {
-			if (!path.toString().toLowerCase().contains(".png")) {
-				throw new IOException("Nur PNG wird unterstützt: " + path);
-			}
-			PNGDecoder dec = new PNGDecoder(stream);
-			width = dec.getWidth();
-			height = dec.getHeight();
-
-			buffer_cache = BufferUtils.createByteBuffer(width * height * 4)
-					.order(ByteOrder.nativeOrder()); // Wichtig für putInt/getInt
-			dec.decode(buffer_cache, width * 4, PNGDecoder.Format.RGBA);
-
-			// Rewind statt flip/limit-Mix
-			buffer_cache.rewind();
-
-			// Daten für die CPU-Seite sichern
-			this.pixels = ImageLoader.ByteBufferToIntArray2(buffer_cache);
-			this.buffer_changed = false;
-
-			initData(width, height, path, DEFAULT_BPP);
-		} catch (Exception e) {
-			System.err.println("Fehler beim Laden von: " + path);
-			e.printStackTrace();
-
-			// Fallback: Pinke Textur
-			width = 2; // Reicht für Fehleranzeige, spart RAM
-			height = 2;
-			this.pixels = new int[width * height];
-			Arrays.fill(this.pixels, ColorPreset.PINK.toInt());
-			buffer_cache = BufferUtils.createByteBuffer(width * height * 4);
-			this.buffer_cache.asIntBuffer().put(pixels);
-			this.buffer_cache.rewind();
-			this.buffer_changed = false;
-
-			initData(width, height, path, DEFAULT_BPP);
-		}
-	}
-
     public void loadDrawMapURLNew(String path, int min_filter, int mag_filter) {
 
         int width = -1, height = -1;
@@ -285,7 +241,6 @@ public class DrawMap extends TextureConstruct implements Renderable {
             if (buffer_cache == null) {
                 throw new RuntimeException("Failed to load texture from URL: " + path + " " + STBImage.stbi_failure_reason());
             }
-
             width = w.get();
             height = h.get();
 
@@ -293,9 +248,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 
             this.buffer_changed = false;
             this.buffer_created = false;
-
-            initData(width, height, convertToURL(path), DEFAULT_BPP);
-            STBImage.stbi_image_free(buffer_cache);
+            initData(width, height, convertToURL(path));
         }
     }
 
@@ -308,31 +261,27 @@ public class DrawMap extends TextureConstruct implements Renderable {
                 IntBuffer w = stack.mallocInt(1);
                 IntBuffer h = stack.mallocInt(1);
                 IntBuffer channels = stack.mallocInt(1);
-
                 STBImage.stbi_set_flip_vertically_on_load(false);
                 buffer_cache = STBImage.stbi_load_from_memory(imageBuffer, w, h, channels, 4); // 4 = RGBA
 
                 if (buffer_cache == null) {
                     throw new RuntimeException("Failed to load texture from URL: " + path + " " + STBImage.stbi_failure_reason());
                 }
-
                 width = w.get();
                 height = h.get();
 
                 this.pixels = ImageLoader.ByteBufferToIntArray2(buffer_cache);
-
                 this.buffer_changed = false;
                 this.buffer_created = false;
 
-                initData(width, height, path, DEFAULT_BPP);
-                STBImage.stbi_image_free(buffer_cache);
+                initData(width, height, path);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-	
-	void initPixels(int width, int height, int bpp, ByteBuffer buffer) throws NullPointerException {
+
+    void initPixels(int width, int height, ByteBuffer buffer) throws NullPointerException {
 		
 		if(!buffer.isReadOnly()) {
 			buffer.rewind();
@@ -343,7 +292,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		buffer_changed = false;
 		buffer_created = false;
 
-		initData(width, height, null, bpp);
+        initData(width, height, null);
 	}
 
 	void initPixels(int width, int height, int color) throws NullPointerException {
@@ -361,7 +310,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		buffer_cache.rewind();
 
 		buffer_changed = true;
-		initData(width, height, null, DEFAULT_BPP);
+        initData(width, height, null);
 	}
 
     public static int copy(final ByteBuffer from, final ByteBuffer to) {
@@ -491,7 +440,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 			}			
 		}
 
-		initData(width, height, this.src_path, DEFAULT_BPP);
+        initData(width, height, this.src_path);
 		this.setSize(width, height);
 		this.pixels = pixels_c;
 		buffer_changed = true;
@@ -579,7 +528,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
 		setWidth(oldH);
 		setHeight(oldW);
 
-		initData(oldH, oldW, this.getPATH(), DEFAULT_BPP);
+        initData(oldH, oldW, this.getPATH());
 		this.pixels = dest;
 		this.buffer_changed = true;
 
@@ -747,7 +696,7 @@ public class DrawMap extends TextureConstruct implements Renderable {
             }
         }
         pixels = dest;
-        initData(w2, h2, getPATH(), 4);
+        initData(w2, h2, getPATH());
         init();
         buffer_changed = true;
 
@@ -757,48 +706,6 @@ public class DrawMap extends TextureConstruct implements Renderable {
     public void saveDrawMap(String type, String path) {
         FileUtils.writeImage(type, path, src_width, src_height, src_bpp, getBuffer());
     }
-
-//	@Deprecated // sollte von der anderen ersetzt werden hat allerdings noch probleme
-//	public DrawMap drawFromDrawMap_OLD(int x, int y, DrawMap drawFrom) { //sollte abfragen ob es out of bounds oder so ist
-//
-//		int source_width = (int) drawFrom.getSourceWidth();
-//		int source_height = (int) drawFrom.getSourceHeight();
-//
-//		for (int y2 = 0; y2 < source_height; y2++) {
-//			int y_1 = getSourceHeight() -  y - y2 -1;
-//			int dst_y = y_1 * getSourceWidth();
-//
-//			int sry_y = y2 * drawFrom.getSourceWidth();
-//			for (int x2 = 0; x2 < source_width; x2++) {
-//				int c = drawFrom.pixels[sry_y + x2];
-//
-//				if(x+x2 >= 0 && x+x2 < getSourceWidth() && dst_y >= 0 && dst_y < getSourceHeight()) {
-//					pixels[dst_y + x + x2] = c;
-//					buffer_changed = true;
-//				}
-//			}
-//		}
-//		return this;
-//	}
-
-
-//	@Deprecated
-//	public DrawMap drawFromDrawMap_OLD(int x, int y, DrawMap drawFrom) {
-//
-//		int source_width = (int) drawFrom.getSourceWidth();
-//		int source_height = (int) drawFrom.getSourceHeight();
-//
-//		for (int x2 = 0; x2 < source_width; x2++) {
-//			for (int y2 = 0; y2 < source_height; y2++) {
-//				int c = drawFrom.getPixelInt(x2, y2);
-//				drawPixel(x + x2, getSourceHeight() -  y - y2 -1, c);
-//			}
-//		}
-//
-//		buffer_changed = true;
-//		return this;
-//	}
-
 
     public DrawMap drawLine(Colorable c, int x0, int y0, int x1, int y1) {
 

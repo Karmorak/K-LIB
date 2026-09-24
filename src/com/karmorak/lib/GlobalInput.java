@@ -8,24 +8,15 @@ import com.karmorak.lib.gamestate.GSM;
 import com.karmorak.lib.gamestate.StateManager;
 
 public class GlobalInput implements NativeKeyListener {
-	
-	public static ArrayList<Integer> keys = new ArrayList<Integer>();
+
+	public static ArrayList<Integer> keys = new ArrayList<>();
 	
 	
 	
 	public void nativeKeyPressed(NativeKeyEvent e) {
 //		System.out.println("Key Pressed: " + NativeKeyEvent.getKeyText(e.getKeyCode()));
-		
-//		if (e.getKeyCode() == NativeKeyEvent.VC_ESCAPE) {
-//			try {
-//				GlobalScreen.unregisterNativeHook();
-//			} catch (NativeHookException nativeHookException) {
-//				nativeHookException.printStackTrace();
-//				}
-//			}
-		
-		
-		keys.add((Integer)e.getKeyCode());
+
+		keys.add(e.getKeyCode());
 		StateManager.globalkeyDown(e);
 	}
 

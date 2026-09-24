@@ -122,7 +122,6 @@ public class MasterRenderer {
 
 		InstanceBuffer.init(Texture.getVAO());
 
-		System.out.println("w5-2-1");
 	}
 
 

@@ -31,6 +31,7 @@ import com.karmorak.lib.engine.graphic.Renderable;
 import com.karmorak.lib.engine.io.images.ImageLoader;
 import com.karmorak.lib.prototype.Boxable;
 import com.karmorak.lib.prototype.Collideable;
+import com.karmorak.lib.utils.file.FileUtils;
 import org.lwjgl.BufferUtils;
 
 import com.karmorak.lib.Color;
@@ -43,7 +44,9 @@ import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
 
 public abstract class TextureConstruct extends Collideable {
-		
+
+
+    public static final String[] SUPPORTED_IMAGEFORMATS = new String[]{"png", "jpg", "jpeg", "bmp", "tng", "gif", "hdr", "psd", "pic", "pnm"};
 
 	protected float scale;
 	protected Vector3 rotation;
@@ -57,7 +60,16 @@ public abstract class TextureConstruct extends Collideable {
 	
 	protected static int default_min_filter = GL_NEAREST;
 	protected static int default_mag_filter = GL_LINEAR;
-	
+
+    public static boolean isImageSupported(String path) {
+        if (!FileUtils.isImageType(path)) return false;
+
+        String file_name = FileUtils.getFileName_fromPath(path);
+        for (String format : SUPPORTED_IMAGEFORMATS) {
+            if (file_name.endsWith(format)) return true;
+        }
+        return true;
+    }
 
 
 	public static int generateTextureID() {

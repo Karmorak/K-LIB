@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import javax.imageio.ImageIO;
 
 import com.karmorak.lib.Colorable;
+import com.karmorak.lib.engine.graphic.flat.TextureConstruct;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.opengl.GL46;
@@ -398,9 +399,8 @@ public class GraphicUtils {
 	  return result;
 	}
 
-	
-	
-
-	
+    public static boolean isImageSupported(String path) {
+        return TextureConstruct.isImageSupported(path);
+    }
 
 }

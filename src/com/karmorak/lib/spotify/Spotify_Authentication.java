@@ -218,22 +218,22 @@ public abstract class Spotify_Authentication {
 		
 		if(responseString.contains(refresh_token)) {
 			new_refresh_token = list[13];
-			KLIB.TEMP_DATA.setValue("spotify_refresh_token", new_refresh_token);
+            KLIB.TEMP_DATA.set("spotify_refresh_token", new_refresh_token);
 		}else 
 			new_refresh_token = refresh_token;
-		
-		
-		KLIB.TEMP_DATA.setValue("spotify_access_token", access_token);
-		KLIB.TEMP_DATA.setValue("spotify_auth_time", "" + KLIB.system.Date() + " " + KLIB.system.Time());
+
+
+        KLIB.TEMP_DATA.set("spotify_access_token", access_token);
+        KLIB.TEMP_DATA.set("spotify_auth_time", "" + KLIB.system.Date() + " " + KLIB.system.Time());
 		
 		return new String[] {access_token, new_refresh_token};
 	}
 	
 	
 	public static String[] Authv3() throws NoSuchAlgorithmException, IOException, URISyntaxException, InterruptedException {
-		
-		String access_token = KLIB.TEMP_DATA.getValue("spotify_access_token");
-		String refresh_token = KLIB.TEMP_DATA.getValue("spotify_refresh_token");
+
+        String access_token = KLIB.TEMP_DATA.getString("spotify_access_token");
+        String refresh_token = KLIB.TEMP_DATA.getString("spotify_refresh_token");
 		
 		System.out.println("Start Auth v3");
 		if(access_token == null || access_token.equals("")) {	
@@ -242,9 +242,9 @@ public abstract class Spotify_Authentication {
 				System.out.println("no refresh token");
 				
 				String[] s = Authv2();
-				KLIB.TEMP_DATA.setValue("spotify_refresh_token", s[1]);
-				KLIB.TEMP_DATA.setValue("spotify_access_token", s[0]);
-				KLIB.TEMP_DATA.setValue("spotify_auth_time", "" + KLIB.system.Date() + " " + KLIB.system.Time());
+                KLIB.TEMP_DATA.set("spotify_refresh_token", s[1]);
+                KLIB.TEMP_DATA.set("spotify_access_token", s[0]);
+                KLIB.TEMP_DATA.set("spotify_auth_time", "" + KLIB.system.Date() + " " + KLIB.system.Time());
 				
 				
 				return s;
@@ -254,8 +254,8 @@ public abstract class Spotify_Authentication {
 			}			
 		} else {
 			System.out.println("access token");
-			
-			String l = KLIB.TEMP_DATA.getValue("spotify_auth_time");
+
+            String l = KLIB.TEMP_DATA.getString("spotify_auth_time");
 			
 			
 			String[] previous_date = l.split(" ")[0].split("\\.");

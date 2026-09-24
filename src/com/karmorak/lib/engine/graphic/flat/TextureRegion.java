@@ -184,11 +184,6 @@ public class TextureRegion extends TextureConstruct implements Renderable {
 		glDisableVertexAttribArray(1);
 		glBindVertexArray(0);	
 	}	
-	
-	//V2
-	public static void render_manual(TextureRegion texture, ArrayList<Vector4> bounds, TextureShader textureShader) {				
-
-	}
 
 	public Vector4 getTexBounds() {
 		return texBounds;
@@ -213,18 +208,11 @@ public class TextureRegion extends TextureConstruct implements Renderable {
 
 	@Override
     public void renderManual(FloatBuffer buffer, int startOffset, int spriteCount, TextureShader shader) {
-//		// 1. Einmal binden für alle Instanzen dieser Textur
-//		glBindTexture(GL_TEXTURE_2D, DATA.getID());
-//
-//		// 2. Farbe einmal setzen (sofern sie für alle Instanzen gleich ist)
-//		shader.load2DColor(overlayColor.toColor(), overlayColorIntensity);
-//
-//		for(Vector4 bound : positions) {
-//			// Nur die Matrix muss sich pro Objekt ändern
-//            shader.loadTransformation((int) bound.getX(), (int) bound.getY(), (int) bound.getWidth(), (int) bound.getHeight(), 0, scale, false, false);
-//
-//
-//			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-//		}
+        if (spriteCount <= 0) return;
+
+        glBindTexture(GL_TEXTURE_2D, getID());
+        shader.load2DColor(overlayColor.toColor(), overlayColorIntensity);
+        // Rendert direkt den gewünschten Bereich aus dem bereits befüllten VBO
+        glDrawArraysInstancedBaseInstance(GL_TRIANGLE_STRIP, 0, 4, spriteCount, startOffset);
 	}
 }

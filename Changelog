@@ -283,3 +283,17 @@ v. 1.0.0 r30 (25.02.2026)
     - GlobalInput Events now execute through StateManager
     - DrawMap.saveRenderImage works
     - added DrawMap.saveRenderImageFBO(..)
+  v 1.3.2 (24.09.2026)
+   - updatet NativeMonitor.dll to us FFM instead of JNI
+   - added KLIB.log and .error
+   - added FileUtils.isFolderEmpty(..)
+   - added enums FileUtils.WRITE_MODE
+   - added new FileUtils.writeToFile that uses those enums
+   - the old writeToFile methods got declared as Deprecated
+   - the standard action of writeToFile is now Append instead of Replace
+   - Config can now read whole "{}"-Bracket blocks with getValues
+   - another potential fix to the JRE-Crashes regarding DrawMaps
+   - 2 new methode in File Utils to get weather the Name of an StringPath or the directory
+   - added isImageSupported() to TextureConstruct
+   - added same function to FileUtils and GraphicUtils
+   - complete rewrite of prototype.Config (v2) although its still in prototype cause... bugs...probably

@@ -4,6 +4,7 @@ import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL46.*;
 
 import java.util.ArrayList;
+import java.util.NoSuchElementException;
 
 import com.github.kwhat.jnativehook.GlobalScreen;
 import com.karmorak.lib.engine.graphic.GLTaskQueue;
@@ -88,17 +89,13 @@ public abstract class Running implements Runnable {
 				window.init();
 				System.out.println("Screen: " + window.getVidmode().width() + " x " + window.getVidmode().height() + " -> " + (int) window.getBounds().getWidth() + " x " + (int) window.getBounds().getHeight());
 			}
-            System.out.println("w5-1");
 			//----init fertig----
             if (renderer == null) {
                 renderer = new MasterRenderer();
             }
-            System.out.println("w5-2");
             renderer.create();
 
-            System.out.println("w5-3");
 			init();
-            System.out.println("w5-4");
 			while(!thread.isInterrupted()) {
 				GLTaskQueue.executeAll();
 				Input.addFrame();
@@ -141,7 +138,11 @@ public abstract class Running implements Runnable {
 	
 	
 	public Window getWindow() {
-		return windows.getFirst();
+        try {
+            return windows.getFirst();
+        } catch (NoSuchElementException _) {
+            return null;
+        }
 	}
 	
 	public void close() {
